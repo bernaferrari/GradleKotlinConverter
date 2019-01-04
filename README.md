@@ -49,7 +49,7 @@ Things it can do
     <tr>
         <td>Add ( ) to dependencies</td>
         <td>implementation ":epoxy"</td>
-        <td>implementation(":epoxy")>td>
+        <td>implementation(":epoxy")</td>
     </tr>
     <tr>
         <td>Convert Maven</td>
