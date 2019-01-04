@@ -1,0 +1,67 @@
+apply plugin: 'com.android.application'
+apply plugin: "kotlin-android"
+apply plugin: ('kotlin-kapt')
+apply plugin: ("kotlin-android-extensions")
+
+dependencies {
+    classpath 'com.android.tools.build:gradle:3.4.0-alpha10'
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$KOTLIN_VERSION"
+    classpath ('com.bmuschko:gradle-nexus-plugin:2.3.1')
+    classpath("com.github.ben-manes:gradle-versions-plugin:0.20.0")
+}
+
+dependencies {
+  implementation rootProject.deps.androidPagingComponent
+  kapt project(':epoxy-processor')
+  implementation ':epoxy-annotations'
+  def ANDROIDX_APPCOMPAT = '1.0.0'
+  implementation "androidx.appcompat:appcompat:$ANDROIDX_APPCOMPAT"
+}
+
+maven { url 'https://maven.fabric.io/public' }
+maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
+
+include ":app", ':diffutils'
+
+androidExtensions {
+    experimental = true
+}
+
+compileSdkVersion 28
+
+defaultConfig {
+    applicationId "com.bernaferrari.sdkmonitor"
+    minSdkVersion 21
+    targetSdkVersion 28
+    versionCode 4
+    versionName "0.4"
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+}
+buildTypes {
+    release {
+        debuggable false
+        minifyEnabled true
+        shrinkResources true
+        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        signingConfig signingConfigs.release
+    }
+}
+kapt {
+    correctErrorTypes = true
+}
+android {
+    lintOptions {
+        abortOnError false
+    }
+}
+compileOptions {
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+}
+dataBinding {
+    enabled = true
+}
+
+task clean(type: Delete) {
+delete rootProject.buildDir
+}
