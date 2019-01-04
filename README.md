@@ -7,14 +7,12 @@ Welcome! After a lot of pain trying to migrate from Gradle's Groovy to Kotlin DS
 
 Please see this tool as a helper, a first resource like Android Studio's Java converter to Kotlin: it won't make a _perfect_ conversion, but it helps a lot in reducing the time you would spend on repetitive tasks.
 
-On my own apps, I've used apostrophes \' instead of quotation marks \" since forever, so it wasn't fun when I discovered I would need to modify more than 100 lines of code to make Kotlin DSL work. Besides this, the tool also solves a few common issues that might appear, like the ```task clean(type: Delete)``` that becomes a completely different thing.
 
-
-Getting Started
+💻 Getting Started
 ---------------
 
 The tool was developed using [kscript](https://github.com/holgerbrandl/kscript). You can find how to install it [here](https://github.com/holgerbrandl/kscript#installation). 
-Gradle 5 is [currently incompatible](https://github.com/holgerbrandl/kscript/issues/197) with the tool that packages it, so I'm afraid you will need to [install kscript](https://github.com/holgerbrandl/kscript#installation) before running this tool. It should be release easy, however. After that, you can run the script by calling:
+Gradle 5 is [currently incompatible](https://github.com/holgerbrandl/kscript/issues/197) with the tool that packages it, so I'm afraid you will need to [install kscript](https://github.com/holgerbrandl/kscript#installation) before running this tool. It should be really easy, however. After that, you can run the script by calling:
 
 ```
 ./gradlekotlinconverter.kts build.gradle
@@ -24,7 +22,10 @@ or
 kscript gradlekotlinconverter.kts build.gradle
 ```
 
-Things it can do
+**Motivation**: on my own apps, I've used apostrophes \' instead of quotation marks \" since forever, so it wasn't fun when I discovered I would need to modify more than 100 lines of code to make Kotlin DSL work. Besides this, the tool also solves a few common issues that might appear, like the ```task clean(type: Delete)``` that becomes a completely different thing.
+
+
+😱 Things it can do
 ---------------
 
 <table>
@@ -90,7 +91,7 @@ Things it can do
 
 You can find all the details on the source code.
 
-Things it still can't do
+😨 Things it still can't do
 -------
 - Dealing with _testInstrumentationRunner_
 - To avoid bugs, all plugins should be in one block ([3th law of SUPERCILEX](https://twitter.com/SUPERCILEX/status/1079832024456749059))
