@@ -42,7 +42,7 @@ Things it can do
         <td>val appcompat = "1.0.0"</td>
     </tr>
     <tr>
-        <td>Convert plugins to Kotlin DSL</td>
+        <td>Convert plugins</td>
         <td>apply plugin: "kotlin-kapt"</td>
         <td>apply(plugin = "kotlin-kapt")</td>
     </tr>
@@ -52,7 +52,7 @@ Things it can do
         <td>implementation(":epoxy")>td>
     </tr>
     <tr>
-        <td>Convert Maven to Kotlin DSL</td>
+        <td>Convert Maven</td>
         <td>maven { url "https://jitpack.io" }</td>
         <td>maven("https://jitpack.io")</td>
     </tr>
