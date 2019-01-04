@@ -1,8 +1,6 @@
 Gradle Kotlin DSL converter
 =================
 
-[![License](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](http://www.apache.org/licenses/LICENSE-2.0)
-
 Welcome! After a lot of pain trying to migrate from Gradle's Groovy to Kotlin DSL on Android Studio, I developed this tool to solve most migration issues and reduce the amount of work you need in order to make things ready.
 
 Please see this tool as a helper, a first resource like Android Studio's Java converter to Kotlin: it won't make a _perfect_ conversion, but it helps a lot in reducing the time you would spend on repetitive tasks.
