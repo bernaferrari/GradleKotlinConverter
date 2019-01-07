@@ -81,9 +81,14 @@ kscript gradlekotlinconverter.kts build.gradle
         <td>sourceCompatibility = JavaVersion.VERSION_1_8</td>
     </tr>
      <tr>
-         <td>Convert AndroidExtensions</td>
-         <td>androidExtensions { experimental = true }</td>
-         <td>androidExtensions { isExperimental = true }</td>
+          <td>Convert AndroidExtensions</td>
+          <td>androidExtensions { experimental = true }</td>
+          <td>androidExtensions { isExperimental = true }</td>
+     </tr>
+     <tr>
+          <td>Convert include</td>
+          <td>include ":app", ":diffutils"</td>
+          <td>include(":app", ":diffutils")</td>
      </tr>
 </table>
 
@@ -93,7 +98,6 @@ You can find all the details on the source code.
 -------
 - Dealing with _testInstrumentationRunner_
 - To avoid bugs, all plugins should be in one block ([3th law of SUPERCILEX](https://twitter.com/SUPERCILEX/status/1079832024456749059))
-- On settings.gradle, include ":app", ":diffutils" should become include (":app", ":diffutils")
 - Dealing with signingConfigs and buildTypes. On singingConfigs, _release_ should become _register("release")_. But there can be multiple arguments, like debug. On buildTypes, _release_ becomes _named("release")_.
 - If you find anything else, just tell me.
 

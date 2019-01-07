@@ -239,12 +239,40 @@ fun String.convertCleanTask(): String {
 // androidExtensions { experimental = true }
 // becomes
 // androidExtensions { isExperimental = true }
-fun String.convertAndroidExtensions(): String {
+fun String.convertInternalBlocks(): String {
+    return this.convertToIs("androidExtensions", "experimental")
+            .convertToIs("dataBinding", "enabled")
+}
 
-    val extensionsExp = "androidExtensions\\s*\\{[\\s\\S]*}".toRegex()
+// androidExtensions { experimental = true }
+// becomes
+// androidExtensions { isExperimental = true }
+fun String.convertToIs(outside: String, inside: String): String {
+
+    val extensionsExp = "$outside\\s*\\{[\\s\\S]*}".toRegex()
 
     return this.replace(extensionsExp) {
-        it.value.replace("experimental", "isExperimental")
+        it.value.replace("$inside", "is${inside.capitalize()}")
+    }
+}
+
+
+// include ":app", ":diffutils"
+// becomes
+// include (":app", ":diffutils")
+fun String.convertInclude(): String {
+
+    val expressionBase = "\\s*((\".*\"\\s*,)\\s*)*(\".*\")".toRegex()
+    val includeExp = "include$expressionBase".toRegex()
+
+    return this.replace(includeExp) { includeBlock ->
+        // avoid cases where some lines at the start/end are blank
+        val multiLine = includeBlock.value.split('\n').count { it.isNotBlank() } > 1
+
+        val isolated = expressionBase.find(includeBlock.value)?.value ?: ""
+        if (multiLine) "include(\n${isolated.trim()}\n)" else "include(${isolated.trim()})"
+        // Possible visual improvement: when using multiline, the first line should have the same
+        // margin/spacement as the others.
     }
 }
 
@@ -252,7 +280,6 @@ fun String.convertAndroidExtensions(): String {
 // TODO
 // testInstrumentationRunner becomes what?
 // plugin should become one block (3th law of SUPERCILEX: https://twitter.com/SUPERCILEX/status/1079832024456749059)
-// settings.gradle | include ":app", ":diffutils" => include (":app", ":diffutils")
 // signingConfigs and buildTypes
 // do you have any other needs? Please open an issue.
 
@@ -269,7 +296,8 @@ val text = file.readText()
         .convertCleanTask()
         .convertBuildTypesInternal()
         .convertProguardFiles()
-        .convertAndroidExtensions()
+        .convertInternalBlocks()
+        .convertInclude()
 
 val newFilePath = file.path + ".kts"
 println("Conversion successful. Saving to: $newFilePath")
