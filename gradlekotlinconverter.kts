@@ -2,21 +2,26 @@
 
 import java.io.File
 import kotlin.system.exitProcess
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 // Bernardo Ferrari
 // APACHE-2 License
 val DEBUG = false
 
 val intro = """
-Welcome to Gradle Kotlin DSL converter!
-
-This is a helper tool, much like Android Studio's Java -> Kotlin converter.
-It is not perfect and there will be things that you'll need to manually solve, but this helps reducing the amount of work.
-It takes care of adding ( ) to dependencies, converting ' to ", adapting plugins and a lot else.
-
-Usage:
-    GradleKotlinConverter.kts <build.gradle file>
-    kscript GradleKotlinConverter.kts <build.gradle file>
++---------------------------------------------------------------------------------------+
++                        Welcome to Gradle Kotlin DSL converter!                        +
++---------------------------------------------------------------------------------------+
++ This is a helper tool, much like Android Studio's Java -> Kotlin converter.           +
++ It is not perfect and there will be things to be manually solved, but it helps A LOT. +
++---------------------------------------------------------------------------------------+
++ Usage:                                                                                +
++    $ gradlekotlinconverter.kts <build.gradle file>                                    +
++    $ kscript GradleKotlinConverter.kts <build.gradle file>                            +
++---------------------------------------------------------------------------------------+
++        Get started here: https://github.com/bernaferrari/GradleKotlinConverter        +
++---------------------------------------------------------------------------------------+
 """
 
 println(intro)
@@ -28,13 +33,15 @@ val input = if (args.isEmpty()) {
     args.first()
 }
 
-println("Trying to open file...")
+fun currentTimeFormatted(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+
+print("[${currentTimeFormatted()}] - Trying to open file.. ")
 val file = File(input)
 if (!file.exists()) {
     println("Didn't find a file in the path you specified. Exiting...")
     exitProcess(0)
 }
-println("File opened successfully...")
+println("Sucess!")
 
 
 // anything with ' ('1.0.0', 'kotlin-android', 'jitpack', etc)
@@ -314,6 +321,7 @@ fun String.convertInclude(): String {
 // signingConfigs and buildTypes
 // do you have any other needs? Please open an issue.
 
+print("[${currentTimeFormatted()}] -- Starting conversion.. ")
 
 val text = file.readText()
         .replaceApostrophes()
@@ -331,11 +339,13 @@ val text = file.readText()
         .convertInclude()
 
 val newFilePath = file.path + ".kts"
-println("Conversion successful. Saving to: $newFilePath")
+
+println("Sucess!")
+print("[${currentTimeFormatted()}] --- Saving to: $newFilePath.. ")
 
 val newFile = File(newFilePath)
 newFile.createNewFile()
 newFile.writeText(text)
 
-println("Done!! Thanks for using my script! Exiting...")
+println("Success!\n\n          Thanks for using this script!\n")
 exitProcess(0)
