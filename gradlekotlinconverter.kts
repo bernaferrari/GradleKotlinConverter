@@ -5,6 +5,7 @@ import kotlin.system.exitProcess
 
 // Bernardo Ferrari
 // APACHE-2 License
+val DEBUG = false
 
 val intro = """
 Welcome to Gradle Kotlin DSL converter!
@@ -67,30 +68,60 @@ fun String.convertPlugins(): String {
 // implementation(":epoxy-annotations")
 fun String.convertDependencies(): String {
 
-    val dependencies = "dependencies\\s*\\{[\\s\\S]*}".toRegex()
+    val dependenciesTag = "dependencies\\s*\\{".toRegex()
 
-    val gradleKeywords = "(implementation|testImplementation|api|annotationProcessor|classpath|kapt)"
+    val gradleKeywords = "(implementation|testImplementation|api|annotationProcessor|classpath|kapt)".toRegex()
 
     val identifyWord = "($gradleKeywords.*)".toRegex()
 
-    return dependencies.find(this)?.value?.replace(identifyWord) {
+    val stringSize = this.count()
 
-        // the function matched something but don't know which keyword was matched
-        // this will be necessary to reconstruct  it
-        val getGradleKeyword = gradleKeywords.toRegex().find(it.value)?.value
+    return dependenciesTag.findAll(this)
+            .toList()
+            .foldRight(this) { matchResult, accString ->
+                val value = matchResult.value
+                var rangeStart = matchResult.range.last
+                var rangeEnd = stringSize
+                var count = 0
 
-        // split: implementation ':epoxy-annotations' becomes 'epoxy-annotations'
-        val splitted = it.value.split(gradleKeywords.toRegex(), 2)[1].let {
-            if (it.startsWith(" ")) it.substring(1) else it
-        }
+                if (DEBUG) {
+                    println("[DP] - range: ${matchResult.range} value: ${matchResult.value}")
+                }
 
-        // can't be && for the kapt project(':epoxy-processor') scenario
-        if (splitted.first() != '(' || splitted.last { it != ' ' } != ')') {
-            "$getGradleKeyword($splitted)"
-        } else {
-            "$getGradleKeyword$splitted"
-        }
-    } ?: this
+                for (item in rangeStart..stringSize) {
+                    if (this[item] == '{') count += 1 else if (this[item] == '}') count -= 1
+                    if (count == 0) {
+                        rangeEnd = item
+                        break
+                    }
+                }
+
+                if (DEBUG) {
+                    println("[DP] reading this block:\n${this.substring(rangeStart, rangeEnd)}")
+                }
+
+                val convertedStr = this.substring(rangeStart, rangeEnd).replace(identifyWord) {
+
+                    // we want to know if it is a implementation, api, etc
+                    val gradleKeyword = gradleKeywords.find(it.value)?.value
+
+                    // implementation ':epoxy-annotations' becomes 'epoxy-annotations'
+                    val isolated = it.value.replace(gradleKeywords, "").trim()
+
+                    // can't be && for the kapt project(':epoxy-processor') scenario, where there is a ) on the last element.
+                    if (isolated.first() != '(' || isolated.last { it != ' ' } != ')') {
+                        "$gradleKeyword($isolated)"
+                    } else {
+                        "$gradleKeyword$isolated"
+                    }
+                }
+
+                if (DEBUG) {
+                    println("[DP] outputing this block:\n${convertedStr}")
+                }
+
+                accString.replaceRange(rangeStart, rangeEnd, convertedStr)
+            }
 }
 
 
