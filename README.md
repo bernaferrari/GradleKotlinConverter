@@ -90,6 +90,16 @@ kscript gradlekotlinconverter.kts build.gradle
           <td>include ":app", ":diffutils"</td>
           <td>include(":app", ":diffutils")</td>
      </tr>
+     <tr>
+            <td>Convert signingConfigs</td>
+            <td>buildTypes { debug { ... } }</td>
+            <td>buildTypes { register("debug") { ... } })</td>
+      </tr>
+     <tr>
+           <td>Convert buildTypes</td>
+           <td>buildTypes { debug { ... } }</td>
+           <td>buildTypes { named("debug") { ... } })</td>
+      </tr>
 </table>
 
 You can find all the details on the source code.
@@ -98,7 +108,6 @@ You can find all the details on the source code.
 -------
 - Dealing with _testInstrumentationRunner_
 - To avoid bugs, all plugins should be in one block ([3th law of SUPERCILEX](https://twitter.com/SUPERCILEX/status/1079832024456749059))
-- Dealing with signingConfigs and buildTypes. On singingConfigs, _release_ should become _register("release")_. But there can be multiple arguments, like debug. On buildTypes, _release_ becomes _named("release")_.
 - If you find anything else, just tell me.
 
 

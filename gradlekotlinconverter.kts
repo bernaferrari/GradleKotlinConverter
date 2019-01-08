@@ -79,13 +79,62 @@ fun String.convertDependencies(): String {
 
     val gradleKeywords = "(implementation|testImplementation|api|annotationProcessor|classpath|kapt)".toRegex()
 
-    val identifyWord = "($gradleKeywords.*)".toRegex()
+    val identifyWord = "$gradleKeywords.*".toRegex()
 
     val stringSize = this.count()
 
-    return dependenciesTag.findAll(this)
+    return this.getExpressionBlock(dependenciesTag) { substring ->
+        substring.replace(identifyWord) {
+
+            // we want to know if it is a implementation, api, etc
+            val gradleKeyword = gradleKeywords.find(it.value)?.value
+
+            // implementation ':epoxy-annotations' becomes 'epoxy-annotations'
+            val isolated = it.value.replace(gradleKeywords, "").trim()
+
+            // can't be && for the kapt project(':epoxy-processor') scenario, where there is a ) on the last element.
+            if (isolated.first() != '(' || isolated.last { it != ' ' } != ')') {
+                "$gradleKeyword($isolated)"
+            } else {
+                "$gradleKeyword$isolated"
+            }
+        }
+    }
+}
+
+
+// buildTypes { release }
+// becomes
+// buildTypes { named("release") }
+fun String.convertBuildTypes(): String = this.convertNestedTypes("buildTypes", "named")
+
+
+// signingConfigs { release }
+// becomes
+// signingConfigs { register("release") }
+fun String.convertSigningConfigs(): String = this.convertNestedTypes("signingConfigs", "register")
+
+
+fun String.convertNestedTypes(buildTypes: String, named: String): String {
+    return this.getExpressionBlock("$buildTypes\\s*\\{".toRegex()) { substring ->
+        substring.replace("\\S*\\s(?=\\{)".toRegex()) {
+            val valueWithoutWhitespace = it.value.replace(" ", "")
+            "$named(\"$valueWithoutWhitespace\")"
+        }
+    }
+}
+
+fun String.getExpressionBlock(
+        expression: Regex,
+        modifyResult: ((String) -> (String))
+): String {
+
+    val stringSize = this.count()
+
+    return expression.findAll(this)
             .toList()
             .foldRight(this) { matchResult, accString ->
+
                 val value = matchResult.value
                 var rangeStart = matchResult.range.last
                 var rangeEnd = stringSize
@@ -107,21 +156,7 @@ fun String.convertDependencies(): String {
                     println("[DP] reading this block:\n${this.substring(rangeStart, rangeEnd)}")
                 }
 
-                val convertedStr = this.substring(rangeStart, rangeEnd).replace(identifyWord) {
-
-                    // we want to know if it is a implementation, api, etc
-                    val gradleKeyword = gradleKeywords.find(it.value)?.value
-
-                    // implementation ':epoxy-annotations' becomes 'epoxy-annotations'
-                    val isolated = it.value.replace(gradleKeywords, "").trim()
-
-                    // can't be && for the kapt project(':epoxy-processor') scenario, where there is a ) on the last element.
-                    if (isolated.first() != '(' || isolated.last { it != ' ' } != ')') {
-                        "$gradleKeyword($isolated)"
-                    } else {
-                        "$gradleKeyword$isolated"
-                    }
-                }
+                val convertedStr = modifyResult.invoke(this.substring(rangeStart, rangeEnd))
 
                 if (DEBUG) {
                     println("[DP] outputing this block:\n${convertedStr}")
@@ -130,29 +165,6 @@ fun String.convertDependencies(): String {
                 accString.replaceRange(rangeStart, rangeEnd, convertedStr)
             }
 }
-
-
-// NOT WORKING
-//// buildTypes { \n release { ... } }
-//// becomes
-//// buildTypes { \n register("release") { ... } }
-//fun String.convertBuildTypes(): String {
-//
-//    val dependencies = "(?:(buildTypes\\s*\\{)*)\\{(?:[^{]*)(?!}[^{]*})".toRegex()
-//    val rep = "[{ \\s]*".toRegex()
-//    return dependencies.find(this)?.value?.replace(rep) { "named(\"${it.value}\")" } ?: this
-//}
-
-// NOT WORKING
-// buildTypes { \n release { ... } }
-// becomes
-// buildTypes { \n register("release") { ... } }
-//fun String.convertSigningConfigs(): String {
-//
-//    val dependencies = "(?:(signingConfigs\\s*\\{)*)\\{(?:[^{]*)(?!}[^{]*})".toRegex()
-//    val rep = "[{ \\s]*".toRegex()
-//    return dependencies.find(this)?.value?.replace(rep) { "register(\"${it.value}\")" } ?: this
-//}
 
 
 // maven { url "https://maven.fabric.io/public" }
@@ -210,26 +222,6 @@ fun String.convertVersionCode(): String {
 }
 
 
-// debuggable true
-// becomes
-// isDebuggable = true
-fun String.convertBuildTypesInternal(): String {
-
-    val typesExp = "(debuggable|minifyEnabled|shrinkResources|abortOnError)\\s*\\S*".toRegex()
-
-    return this.replace(typesExp) {
-        val split = it.value.split(" ")
-
-        // if there is more than one whitespace, the last().toIntOrNull() will find.
-        if (split.lastOrNull { it.isNotBlank() } != null) {
-            "is${split[0].capitalize()} = ${split.last()}"
-        } else {
-            it.value
-        }
-    }
-}
-
-
 // proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
 // becomes
 // setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -278,19 +270,36 @@ fun String.convertCleanTask(): String {
 // becomes
 // androidExtensions { isExperimental = true }
 fun String.convertInternalBlocks(): String {
-    return this.convertToIs("androidExtensions", "experimental")
-            .convertToIs("dataBinding", "enabled")
+    return this.addIsToStr("androidExtensions", "experimental")
+            .addIsToStr("dataBinding", "enabled")
+            .addIsToStr("lintOptions", "abortOnError")
+            .addIsToStr("buildTypes", "debuggable")
+            .addIsToStr("buildTypes", "minifyEnabled")
+            .addIsToStr("buildTypes", "shrinkResources")
 }
 
-// androidExtensions { experimental = true }
-// becomes
-// androidExtensions { isExperimental = true }
-fun String.convertToIs(outside: String, inside: String): String {
+fun String.addIsToStr(blockTitle: String, transform: String): String {
 
-    val extensionsExp = "$outside\\s*\\{[\\s\\S]*}".toRegex()
+    val extensionsExp = "$blockTitle\\s*\\{[\\s\\S]*\\}".toRegex()
 
-    return this.replace(extensionsExp) {
-        it.value.replace("$inside", "is${inside.capitalize()}")
+    if (!extensionsExp.containsMatchIn(this)) return this
+
+    val typesExp = "$transform.*".toRegex()
+
+    return this.replace(typesExp) {
+
+        val split = it.value.split(" ")
+
+        if (DEBUG) {
+            println("[AS] split:\n${split}")
+        }
+
+        // if there is more than one whitespace, the last().toIntOrNull() will find.
+        if (split.lastOrNull { it.isNotBlank() } != null) {
+            "is${split[0].capitalize()} = ${split.last()}"
+        } else {
+            it.value
+        }
     }
 }
 
@@ -318,7 +327,6 @@ fun String.convertInclude(): String {
 // TODO
 // testInstrumentationRunner becomes what?
 // plugin should become one block (3th law of SUPERCILEX: https://twitter.com/SUPERCILEX/status/1079832024456749059)
-// signingConfigs and buildTypes
 // do you have any other needs? Please open an issue.
 
 print("[${currentTimeFormatted()}] -- Starting conversion.. ")
@@ -333,10 +341,11 @@ val text = file.readText()
         .convertVersionCode()
         .convertJavaCompatibility()
         .convertCleanTask()
-        .convertBuildTypesInternal()
         .convertProguardFiles()
         .convertInternalBlocks()
         .convertInclude()
+        .convertBuildTypes()
+        .convertSigningConfigs()
 
 val newFilePath = file.path + ".kts"
 
