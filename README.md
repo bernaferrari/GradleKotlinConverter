@@ -92,8 +92,8 @@ kscript gradlekotlinconverter.kts build.gradle
      </tr>
      <tr>
             <td>Convert signingConfigs</td>
-            <td>buildTypes { debug { ... } }</td>
-            <td>buildTypes { register("debug") { ... } })</td>
+            <td>signingConfigs { debug { ... } }</td>
+            <td>signingConfigs { register("debug") { ... } })</td>
       </tr>
      <tr>
            <td>Convert buildTypes</td>
