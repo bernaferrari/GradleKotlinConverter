@@ -29,7 +29,7 @@ $ ./gradlekotlinconverter.kts
 Sometimes you just want to copy and paste. This is still experimental, and _implementation_ requires the _dependencies_ block, but it is really useful already.
 The GIF showcases how simple it is:
 
- ![GIF](/clipboard_mode.gif)
+ ![GIF](/clipboard_mode.gif?raw=true)
 
 
 😱 Things it can do
