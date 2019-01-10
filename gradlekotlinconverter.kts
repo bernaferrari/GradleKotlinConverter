@@ -9,25 +9,35 @@ import java.time.format.DateTimeFormatter
 // APACHE-2 License
 val DEBUG = false
 
+// from https://github.com/importre/crayon
+fun String.bold() = "\u001b[1m${this}\u001b[0m"
+
+fun String.cyan() = "\u001b[36m${this}\u001b[0m"
+fun String.green() = "\u001b[32m${this}\u001b[0m"
+fun String.magenta() = "\u001b[35m${this}\u001b[0m"
+fun String.red() = "\u001b[31m${this}\u001b[0m"
+fun String.yellow() = "\u001b[33m${this}\u001b[0m"
+
+
 val intro = """
 +---------------------------------------------------------------------------------------+
-+                        Welcome to Gradle Kotlin DSL converter!                        +
++                        ${"Welcome to Gradle Kotlin DSL converter!".yellow()}                        +
 +---------------------------------------------------------------------------------------+
 + This is a helper tool, much like Android Studio's Java -> Kotlin converter.           +
 + It is not perfect and there will be things to be manually solved, but it helps A LOT. +
 +---------------------------------------------------------------------------------------+
 + Usage:                                                                                +
-+    $ gradlekotlinconverter.kts <build.gradle file>                                    +
-+    $ kscript GradleKotlinConverter.kts <build.gradle file>                            +
++    ${"$ gradlekotlinconverter.kts <build.gradle file>".cyan()}                                    +
++    ${"$ kscript gradlekotlinconverter.kts <build.gradle file>".cyan()}                            +
 +---------------------------------------------------------------------------------------+
-+        Get started here: https://github.com/bernaferrari/GradleKotlinConverter        +
++        ${"Get started here: https://github.com/bernaferrari/GradleKotlinConverter".yellow()}        +
 +---------------------------------------------------------------------------------------+
 """
 
 println(intro)
 
 val input = if (args.isEmpty()) {
-    println("I see you din't select a build.gradle file to convert. Please type the file path:")
+    println("I see you didn't select a build.gradle file to convert. Please type the file path:".yellow())
     readLine()
 } else {
     args.first()
@@ -355,8 +365,8 @@ println("Sucess!")
 val fileIsAlreadyKts = file.path.takeLast(4) == ".kts"
 
 if (fileIsAlreadyKts) {
-    println("\n### ### ### Warning! The script will overrite ${file.path}, since it ends with \".kts\"" +
-            "\n### ### ### Gradle might get crazy and all red, so you might want to \"gradle build\"\n")
+    println("\n### ### ### Warning! The script will overrite ${file.path}, since it ends with \".kts\"".red() +
+            "\n### ### ### Gradle might get crazy and all red, so you might want to \"gradle build\"\n".red())
 }
 
 val newFilePath = if (fileIsAlreadyKts) file.path else "${file.path}.kts"
