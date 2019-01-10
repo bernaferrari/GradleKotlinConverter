@@ -13,14 +13,23 @@ The tool was developed using [kscript](https://github.com/holgerbrandl/kscript).
 Gradle 5 is [currently incompatible](https://github.com/holgerbrandl/kscript/issues/197) with the tool that packages it, so I'm afraid you will need to [install kscript](https://github.com/holgerbrandl/kscript#installation) before running this tool. It should be really easy, however. After that, you can run the script by calling:
 
 ```
-./gradlekotlinconverter.kts build.gradle
-```
-or 
-```
-kscript gradlekotlinconverter.kts build.gradle
+File mode:
+$ ./gradlekotlinconverter.kts build.gradle
+$ kscript gradlekotlinconverter.kts build.gradle
+
+Clipboard mode (still experimental):
+$ ./gradlekotlinconverter.kts
 ```
 
 **Motivation**: on my own apps, I've used apostrophes \' instead of quotation marks \" since forever, so it wasn't fun when I discovered I would need to modify more than 100 lines of code to make Kotlin DSL work. Besides this, the tool also solves a few common issues that might appear, like the ```task clean(type: Delete)``` that becomes a completely different thing.
+
+
+📋 Clipboard mode
+---------------
+Sometimes you just want to copy and paste. This is still experimental, and _implementation_ requires the _dependencies_ block, but it is really useful already.
+The GIF showcases how simple it is:
+
+ ![GIF](/clipboard_mode.gif)
 
 
 😱 Things it can do

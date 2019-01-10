@@ -4,6 +4,10 @@ import java.io.File
 import kotlin.system.exitProcess
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.awt.Toolkit
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.StringSelection
+import java.io.IOException
 
 // Bernardo Ferrari
 // APACHE-2 License
@@ -18,6 +22,7 @@ fun String.magenta() = "\u001b[35m${this}\u001b[0m"
 fun String.red() = "\u001b[31m${this}\u001b[0m"
 fun String.yellow() = "\u001b[33m${this}\u001b[0m"
 
+fun currentTimeFormatted(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
 
 val intro = """
 +---------------------------------------------------------------------------------------+
@@ -26,9 +31,12 @@ val intro = """
 + This is a helper tool, much like Android Studio's Java -> Kotlin converter.           +
 + It is not perfect and there will be things to be manually solved, but it helps A LOT. +
 +---------------------------------------------------------------------------------------+
-+ Usage:                                                                                +
++ Usage with files:                                                                     +
 +    ${"$ gradlekotlinconverter.kts <build.gradle file>".cyan()}                                    +
 +    ${"$ kscript gradlekotlinconverter.kts <build.gradle file>".cyan()}                            +
++                                                                                       +
++ Usage with clipboard (experimental):                                                  +
++    ${"$ gradlekotlinconverter.kts".cyan()}                                                     +
 +---------------------------------------------------------------------------------------+
 +        ${"Get started here: https://github.com/bernaferrari/GradleKotlinConverter".yellow()}        +
 +---------------------------------------------------------------------------------------+
@@ -36,23 +44,42 @@ val intro = """
 
 println(intro)
 
-val input = if (args.isEmpty()) {
-    println("I see you didn't select a build.gradle file to convert. Please type the file path:".yellow())
-    readLine()
-} else {
-    args.first()
-}
+var isInClipBoardMode = args.isEmpty()
 
-fun currentTimeFormatted(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+val input = if (!isInClipBoardMode) args.first() else ""
 
-print("[${currentTimeFormatted()}] - Trying to open file.. ")
 val file = File(input)
-if (!file.exists()) {
-    println("Didn't find a file in the path you specified. Exiting...")
-    exitProcess(0)
-}
-println("Sucess!")
 
+// Clipboard
+System.setProperty("java.awt.headless", "false")
+
+fun getClipboardContents(): String {
+
+    print("[${currentTimeFormatted()}] - Trying to open clipboard.. ")
+
+    val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+    val contents = clipboard.getContents(null)
+    val hasTransferableText = contents != null && contents.isDataFlavorSupported(DataFlavor.stringFlavor)
+
+    val result = if (hasTransferableText) contents?.getTransferData(DataFlavor.stringFlavor) as? String ?: "" else ""
+
+    println("Sucess!")
+    return result
+}
+
+fun readFromFile(): String {
+
+    print("[${currentTimeFormatted()}] - Trying to open file.. ")
+    if (!file.exists()) {
+        println("Didn't find a file in the path you specified. Exiting...")
+        exitProcess(0)
+    }
+
+    println("Sucess!")
+    return file.readText()
+}
+
+val textToConvert = if (isInClipBoardMode) getClipboardContents() else readFromFile()
 
 // anything with ' ('1.0.0', 'kotlin-android', 'jitpack', etc)
 // becomes
@@ -90,8 +117,6 @@ fun String.convertDependencies(): String {
     val gradleKeywords = "(implementation|testImplementation|api|annotationProcessor|classpath|kapt)".toRegex()
 
     val identifyWord = "$gradleKeywords.*".toRegex()
-
-    val stringSize = this.count()
 
     return this.getExpressionBlock(dependenciesTag) { substring ->
         substring.replace(identifyWord) {
@@ -145,7 +170,6 @@ fun String.getExpressionBlock(
             .toList()
             .foldRight(this) { matchResult, accString ->
 
-                val value = matchResult.value
                 var rangeStart = matchResult.range.last
                 var rangeEnd = stringSize
                 var count = 0
@@ -341,7 +365,7 @@ fun String.convertInclude(): String {
 
 print("[${currentTimeFormatted()}] -- Starting conversion.. ")
 
-val text = file.readText()
+val convertedText = textToConvert
         .replaceApostrophes()
         .replaceDefWithVal()
         .convertPlugins()
@@ -360,22 +384,39 @@ val text = file.readText()
 
 println("Sucess!")
 
-// if build.gradle -> build.gradle.kts
-// if build.gradle.kts -> build.gradle.kts (override)
-val fileIsAlreadyKts = file.path.takeLast(4) == ".kts"
 
-if (fileIsAlreadyKts) {
-    println("\n### ### ### Warning! The script will overrite ${file.path}, since it ends with \".kts\"".red() +
-            "\n### ### ### Gradle might get crazy and all red, so you might want to \"gradle build\"\n".red())
+fun writeToClipboard() {
+    val selection = StringSelection(convertedText)
+    val clipboard = Toolkit.getDefaultToolkit().getSystemClipboard()
+
+    print("[${currentTimeFormatted()}] --- Saving to clipboard.. ")
+
+    clipboard.setContents(selection, selection)
 }
 
-val newFilePath = if (fileIsAlreadyKts) file.path else "${file.path}.kts"
 
-print("[${currentTimeFormatted()}] --- Saving to: \"$newFilePath\".. ")
+fun writeToFile() {
+    // if build.gradle -> build.gradle.kts
+    // if build.gradle.kts -> build.gradle.kts (override)
+    val fileIsAlreadyKts = file.path.takeLast(4) == ".kts"
 
-val newFile = File(newFilePath)
-newFile.createNewFile()
-newFile.writeText(text)
+    if (fileIsAlreadyKts) {
+        println("\n### ### ### Warning! The script will overrite ${file.path}, since it ends with \".kts\"".red() +
+                "\n### ### ### Gradle might get crazy and all red, so you might want to \"gradle build\"\n".red())
+    }
+
+    val newFilePath = if (fileIsAlreadyKts) file.path else "${file.path}.kts"
+
+    print("[${currentTimeFormatted()}] --- Saving to: \"$newFilePath\".. ")
+
+    val newFile = File(newFilePath)
+    newFile.createNewFile()
+    newFile.writeText(convertedText)
+}
+
+
+if (isInClipBoardMode) writeToClipboard() else writeToFile()
+
 
 println("Success!\n\n          Thanks for using this script!\n")
 exitProcess(0)
