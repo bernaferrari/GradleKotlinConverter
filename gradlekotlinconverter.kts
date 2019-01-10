@@ -207,7 +207,7 @@ fun String.convertSdkVersion(): String {
 // versionCode = 4
 fun String.convertVersionCode(): String {
 
-    val versionExp = "(applicationId|versionCode|versionName)\\s*\\S*".toRegex()
+    val versionExp = "(applicationId|versionCode|versionName).*".toRegex()
 
     return this.replace(versionExp) {
         val split = it.value.split(" ")
@@ -347,10 +347,21 @@ val text = file.readText()
         .convertBuildTypes()
         .convertSigningConfigs()
 
-val newFilePath = file.path + ".kts"
 
 println("Sucess!")
-print("[${currentTimeFormatted()}] --- Saving to: $newFilePath.. ")
+
+// if build.gradle -> build.gradle.kts
+// if build.gradle.kts -> build.gradle.kts (override)
+val fileIsAlreadyKts = file.path.takeLast(4) == ".kts"
+
+if (fileIsAlreadyKts) {
+    println("\n### ### ### Warning! The script will overrite ${file.path}, since it ends with \".kts\"" +
+            "\n### ### ### Gradle might get crazy and all red, so you might want to \"gradle build\"\n")
+}
+
+val newFilePath = if (fileIsAlreadyKts) file.path else "${file.path}.kts"
+
+print("[${currentTimeFormatted()}] --- Saving to: \"$newFilePath\".. ")
 
 val newFile = File(newFilePath)
 newFile.createNewFile()

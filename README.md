@@ -104,6 +104,13 @@ kscript gradlekotlinconverter.kts build.gradle
 
 You can find all the details on the source code.
 
+The script was made to convert `build.gradle` in `build.gradle.kts`, but it can also help in the migration if you paste something that is not in Kotlin DSL format
+and you want it converted. If you paste something like a `implementation '...'` and want it converted to `implementation("...")`, you are free to call the script on `build.gradle.kts` file and see it working as expected.
+
+When applying on `build.gradle`, the script will create, for example, `build.gradle.kts`.
+When applying on a file that already ends in `.kts`, the script will overrite the file.
+In that case, please make sure you are using git or have a backup, in case things turn out wrong.
+
 😨 Things it still can't do
 -------
 - Dealing with _testInstrumentationRunner_
