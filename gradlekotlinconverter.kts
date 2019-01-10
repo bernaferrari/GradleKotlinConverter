@@ -172,7 +172,7 @@ fun String.getExpressionBlock(
 // maven("https://maven.fabric.io/public")
 fun String.convertMaven(): String {
 
-    val mavenExp = "maven\\s*\\{\\s*url\\s*.*\\s*}\\s*".toRegex()
+    val mavenExp = "maven\\s*\\{\\s*url\\s*(.*?)\\s*?}".toRegex()
 
     return this.replace(mavenExp) {
         it.value.replace("(url)|( )".toRegex(), "")

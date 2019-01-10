@@ -21,8 +21,6 @@ dependencies {
   implementation "androidx.appcompat:appcompat:$ANDROIDX_APPCOMPAT"
 }
 
-maven { url 'https://maven.fabric.io/public' }
-maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
 
 include ":app", ':diffutils'
 
@@ -36,6 +34,15 @@ include ':common',
 
 androidExtensions {
     experimental = true
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        maven { url 'https://maven.fabric.io/public' }
+        maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
+    }
 }
 
 compileSdkVersion 28
