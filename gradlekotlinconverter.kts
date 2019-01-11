@@ -63,7 +63,7 @@ fun getClipboardContents(): String {
 
     val result = if (hasTransferableText) contents?.getTransferData(DataFlavor.stringFlavor) as? String ?: "" else ""
 
-    println("Sucess!")
+    println("Success!")
     return result
 }
 
@@ -75,7 +75,7 @@ fun readFromFile(): String {
         exitProcess(0)
     }
 
-    println("Sucess!")
+    println("Success!")
     return file.readText()
 }
 
@@ -382,7 +382,7 @@ val convertedText = textToConvert
         .convertSigningConfigs()
 
 
-println("Sucess!")
+println("Success!")
 
 
 fun writeToClipboard() {
