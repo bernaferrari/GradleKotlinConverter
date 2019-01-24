@@ -89,26 +89,41 @@ The GIF showcases how simple it is:
         <td>sourceCompatibility = "1.8"</td>
         <td>sourceCompatibility = JavaVersion.VERSION_1_8</td>
     </tr>
-     <tr>
-          <td>Convert AndroidExtensions</td>
-          <td>androidExtensions { experimental = true }</td>
-          <td>androidExtensions { isExperimental = true }</td>
-     </tr>
-     <tr>
-          <td>Convert include</td>
-          <td>include ":app", ":diffutils"</td>
-          <td>include(":app", ":diffutils")</td>
-     </tr>
-     <tr>
-            <td>Convert signingConfigs</td>
-            <td>signingConfigs { debug { ... } }</td>
-            <td>signingConfigs { register("debug") { ... } }</td>
-      </tr>
-     <tr>
-           <td>Convert buildTypes</td>
-           <td>buildTypes { debug { ... } }</td>
-           <td>buildTypes { named("debug") { ... } })</td>
-      </tr>
+    <tr>
+        <td>Convert AndroidExtensions</td>
+        <td>androidExtensions { experimental = true }</td>
+        <td>androidExtensions { isExperimental = true }</td>
+    </tr>
+    <tr>
+        <td>Convert include</td>
+        <td>include ":app", ":diffutils"</td>
+        <td>include(":app", ":diffutils")</td>
+    </tr>
+    <tr>
+        <td>Convert signingConfigs</td>
+        <td>signingConfigs { debug { ... } }</td>
+        <td>signingConfigs { register("debug") { ... } }</td>
+    </tr>
+    <tr>
+        <td>Convert buildTypes</td>
+        <td>buildTypes { debug { ... } }</td>
+        <td>buildTypes { named("debug") { ... } })</td>
+    </tr>
+    <tr>
+        <td>Convert classpath.exclude</td>
+        <td>configurations.classpath.exclude group: '...lombok'</td>
+        <td>configurations.classpath { exclude(group = "...lombok") }</td>
+    </tr>
+    <tr>
+        <td>Convert Kotlin stdlib</td>
+        <td>impl "org.jetbrains.kotlin:kotlin-stdlib:$kt_v"</td>
+        <td>kotlin("stdlib", KotlinCompilerVersion.VERSION)</td>
+    </tr>
+    <tr>
+        <td>Convert Kotlin classpath</td>
+        <td>classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kt_v"</td>
+        <td>classpath(kotlin("gradle-plugin", version = "$kt_v"))</td>
+    </tr>
 </table>
 
 You can find all the details on the source code.

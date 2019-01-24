@@ -22,6 +22,12 @@ dependencies {
   implementation "androidx.appcompat:appcompat:$ANDROIDX_APPCOMPAT"
 }
 
+configurations.classpath.exclude group: 'com.android.tools.external.lombok'
+
+implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+
+classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
 include ":app", ':diffutils'
 

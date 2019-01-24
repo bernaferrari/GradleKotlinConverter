@@ -1,13 +1,6 @@
 #!/usr/bin/env kscript
 
-import java.io.File
 import kotlin.system.exitProcess
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.awt.Toolkit
-import java.awt.datatransfer.DataFlavor
-import java.awt.datatransfer.StringSelection
-import java.io.IOException
 
 // Bernardo Ferrari
 // APACHE-2 License
@@ -340,7 +333,7 @@ fun String.addIsToStr(blockTitle: String, transform: String): String {
 
 // include ":app", ":diffutils"
 // becomes
-// include (":app", ":diffutils")
+// include(":app", ":diffutils")
 fun String.convertInclude(): String {
 
     val expressionBase = "\\s*((\".*\"\\s*,)\\s*)*(\".*\")".toRegex()
@@ -354,6 +347,67 @@ fun String.convertInclude(): String {
         if (multiLine) "include(\n${isolated.trim()}\n)" else "include(${isolated.trim()})"
         // Possible visual improvement: when using multiline, the first line should have the same
         // margin/spacement as the others.
+    }
+}
+
+// implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+// becomes
+// kotlin("stdlib", KotlinCompilerVersion.VERSION)
+fun String.convertKotlinImpl(): String {
+
+    val fullLineExp = "implementation.*(org\\.jetbrains\\.kotlin:kotlin-stdlib).*".toRegex()
+
+    // this will extract the "stdlib" from the string. Might be stdlib-jdk8 or something else.
+    val innerExp = "stdlib.*(?=:)".toRegex()
+
+    return this.replace(fullLineExp) { isolatedLine ->
+        val stdLib = innerExp.find(isolatedLine.value)?.value ?: "stdlib"
+        "kotlin(\"${stdLib}\", KotlinCompilerVersion.VERSION)"
+    }
+}
+
+// configurations.classpath.exclude group: 'com.android.tools.external.lombok'
+// becomes
+// configurations.classpath {
+//    exclude(group = "com.android.tools.external.lombok")
+// }
+fun String.convertExcludeClasspath(): String {
+
+    val fullLineExp = ".*configurations\\.classpath\\.exclude.*group:.*".toRegex()
+
+    if (DEBUG) {
+        println("[CEC] - reading this line: " + fullLineExp.find(this)?.value)
+    }
+
+    // this will extract "com.android.tools.external.lombok" from the string.
+    val innerExp = "\\\".*\\\"".toRegex()
+
+    return this.replace(fullLineExp) { isolatedLine ->
+        val isolatedStr = innerExp.find(isolatedLine.value)?.value ?: ""
+        "configurations.classpath {\n" +
+                "    exclude(group = $isolatedStr)\n" +
+                "}"
+    }
+}
+
+// classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+// becomes
+// classpath(kotlin("gradle-plugin", version = "$kotlin_version"))
+fun String.convertClasspathKotlin(): String {
+
+    val fullLineExp = "classpath.*\"org.jetbrains\\.kotlin:kotlin-gradle-plugin:.*\"".toRegex()
+
+    if (DEBUG) {
+        println("[CCK] - reading this line: " + fullLineExp.find(this)?.value)
+    }
+
+    // this will extract "$kotlin_version" from the string.
+    val removeExp = "classpath.*\"org\\.jetbrains\\.kotlin:kotlin-gradle-plugin:".toRegex()
+
+    return this.replace(fullLineExp) { isolatedLine ->
+        // remove everything before $kotlin_version and the " after it.
+        val kVersion = isolatedLine.value.replace(removeExp, "").replace("\"","")
+        "classpath(kotlin(\"gradle-plugin\", version = \"$kVersion\"))"
     }
 }
 
@@ -380,6 +434,9 @@ val convertedText = textToConvert
         .convertInclude()
         .convertBuildTypes()
         .convertSigningConfigs()
+        .convertExcludeClasspath()
+        .convertKotlinImpl()
+        .convertClasspathKotlin()
 
 
 println("Success!")
