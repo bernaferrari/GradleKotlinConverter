@@ -402,7 +402,7 @@ fun String.convertExcludeClasspath(): String {
 // classpath(kotlin("gradle-plugin", version = "$kotlin_version"))
 fun String.convertClasspathKotlin(): String {
 
-    val fullLineExp = "classpath.*\"org.jetbrains\\.kotlin:kotlin-gradle-plugin:.*\"".toRegex()
+    val fullLineExp = "classpath.*\"org.jetbrains\\.kotlin:kotlin-gradle-plugin:.*".toRegex()
 
     if (DEBUG) {
         println("[CCK] - reading this line: " + fullLineExp.find(this)?.value)
@@ -413,7 +413,7 @@ fun String.convertClasspathKotlin(): String {
 
     return this.replace(fullLineExp) { isolatedLine ->
         // remove everything before $kotlin_version and the " after it.
-        val kVersion = isolatedLine.value.replace(removeExp, "").replace("\"","")
+        val kVersion = isolatedLine.value.replace(removeExp, "").replace("\"|\\)".toRegex(),"")
         "classpath(kotlin(\"gradle-plugin\", version = \"$kVersion\"))"
     }
 }
