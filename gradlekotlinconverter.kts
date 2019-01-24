@@ -1,6 +1,13 @@
 #!/usr/bin/env kscript
 
+import java.io.File
 import kotlin.system.exitProcess
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.awt.Toolkit
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.StringSelection
+import java.io.IOException
 
 // Bernardo Ferrari
 // APACHE-2 License
