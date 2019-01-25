@@ -112,27 +112,30 @@ fun String.convertPlugins(): String {
 // implementation(":epoxy-annotations")
 fun String.convertDependencies(): String {
 
-    val dependenciesTag = "dependencies\\s*\\{".toRegex()
+    val gradleKeywords = "(implementation|testImplementation|androidTestImplementation|api|annotationProcessor|classpath|kapt)".toRegex()
 
-    val gradleKeywords = "(implementation|testImplementation|api|annotationProcessor|classpath|kapt)".toRegex()
+    val validKeywords = "$gradleKeywords.*".toRegex()
 
-    val identifyWord = "$gradleKeywords.*".toRegex()
+    // ignore cases like kapt { correctErrorTypes = true } but pass kapt("...")
+    // also ignore cases like apply plugin: ('kotlin-kapt")
+    // ignore keyWord followed by a space and a { or a " and a )
+    val invalidKeywords = "$gradleKeywords(.*\\{|\\s*\"\\s*\\))".toRegex()
 
-    return this.getExpressionBlock(dependenciesTag) { substring ->
-        substring.replace(identifyWord) {
+    return this.replace(validKeywords) { substring ->
 
-            // we want to know if it is a implementation, api, etc
-            val gradleKeyword = gradleKeywords.find(it.value)?.value
+        if (invalidKeywords.matches(substring.value)) { return@replace substring.value }
 
-            // implementation ':epoxy-annotations' becomes 'epoxy-annotations'
-            val isolated = it.value.replace(gradleKeywords, "").trim()
+        // we want to know if it is a implementation, api, etc
+        val gradleKeyword = gradleKeywords.find(substring.value)?.value
 
-            // can't be && for the kapt project(':epoxy-processor') scenario, where there is a ) on the last element.
-            if (isolated.first() != '(' || isolated.last { it != ' ' } != ')') {
-                "$gradleKeyword($isolated)"
-            } else {
-                "$gradleKeyword$isolated"
-            }
+        // implementation ':epoxy-annotations' becomes 'epoxy-annotations'
+        val isolated = substring.value.replace(gradleKeywords, "").trim()
+
+        // can't be && for the kapt project(':epoxy-processor') scenario, where there is a ) on the last element.
+        if (isolated.first() != '(' || isolated.last { it != ' ' } != ')') {
+            "$gradleKeyword($isolated)"
+        } else {
+            "$gradleKeyword$isolated"
         }
     }
 }
@@ -265,23 +268,27 @@ fun String.convertProguardFiles(): String {
 
     return this.replace(proguardExp) {
         val isolatedArgs = it.value.replace("proguardFiles\\s*".toRegex(), "")
-        "setProguardFiles(listOf($isolatedArgs)"
+        "setProguardFiles(listOf($isolatedArgs))"
     }
 }
 
 
-// sourceCompatibility = "1.8"
+// sourceCompatibility = "1.8" or sourceCompatibility JavaVersion.VERSION_1_8
 // becomes
 // sourceCompatibility = JavaVersion.VERSION_1_8
 fun String.convertJavaCompatibility(): String {
 
-    val compatibilityExp = "(sourceCompatibility|targetCompatibility)\\s*=\\s*\".*\"\\s*".toRegex()
+    val compatibilityExp = "(sourceCompatibility|targetCompatibility).*".toRegex()
 
     return this.replace(compatibilityExp) {
-        val split = it.value.replace("[ \"]*".toRegex(), "").split("=")
+        val split = it.value.replace("\"]*".toRegex(), "").split(" ")
 
         if (split.lastOrNull() != null) {
-            "${split[0]} = JavaVersion.VERSION_${split.last().replace(".", "_")}"
+            if ("JavaVersion" in split.last()) {
+                "${split[0]} = ${split.last()}"
+            } else {
+                "${split[0]} = JavaVersion.VERSION_${split.last().replace(".", "_")}"
+            }
         } else {
             it.value
         }
