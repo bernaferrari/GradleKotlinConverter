@@ -454,7 +454,9 @@ fun String.convertJetBrainsKotlin(): String {
 
     val removeExp = "(?!org.jetbrains.kotlin:kotlin)-.*".toRegex()
 
-    return this.replace(fullLineExp) { isolatedLine ->
+    var shouldImportKotlinCompiler = false
+
+    val newText = this.replace(fullLineExp) { isolatedLine ->
 
         // drop first "-" and remove last "
         val substring = (removeExp.find(isolatedLine.value)?.value ?: "").drop(1).replace("\"","")
@@ -462,12 +464,19 @@ fun String.convertJetBrainsKotlin(): String {
         val splittedSubstring = substring.split(":")
 
         if ("stdlib" in substring) {
+            shouldImportKotlinCompiler = true
             "kotlin(\"stdlib\", KotlinCompilerVersion.VERSION)"
         } else if (splittedSubstring.size == 2) {
             "kotlin(\"${splittedSubstring[0]}\", version = \"${splittedSubstring[1]}\")"
         } else {
             "kotlin(\"${splittedSubstring[0]}\")"
         }
+    }
+
+    return if (shouldImportKotlinCompiler) {
+        "import org.jetbrains.kotlin.config.KotlinCompilerVersion\n\n" + newText
+    } else {
+        newText
     }
 }
 
