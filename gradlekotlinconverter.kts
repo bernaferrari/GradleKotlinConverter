@@ -394,21 +394,6 @@ fun String.convertInclude(): String {
     }
 }
 
-// implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-// becomes
-// kotlin("stdlib", KotlinCompilerVersion.VERSION)
-fun String.convertKotlinImpl(): String {
-
-    val fullLineExp = "implementation.*(org\\.jetbrains\\.kotlin:kotlin-stdlib).*".toRegex()
-
-    // this will extract the "stdlib" from the string. Might be stdlib-jdk8 or something else.
-    val innerExp = "stdlib.*(?=:)".toRegex()
-
-    return this.replace(fullLineExp) { isolatedLine ->
-        val stdLib = innerExp.find(isolatedLine.value)?.value ?: "stdlib"
-        "kotlin(\"${stdLib}\", KotlinCompilerVersion.VERSION)"
-    }
-}
 
 // configurations.classpath.exclude group: 'com.android.tools.external.lombok'
 // becomes
@@ -437,21 +422,31 @@ fun String.convertExcludeClasspath(): String {
 // classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 // becomes
 // classpath(kotlin("gradle-plugin", version = "$kotlin_version"))
-fun String.convertClasspathKotlin(): String {
+//
+// implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+// becomes
+// implementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
+fun String.convertJetBrainsKotlin(): String {
 
-    val fullLineExp = "classpath.*\"org.jetbrains\\.kotlin:kotlin-gradle-plugin:.*".toRegex()
+    // if string is implementation("..."), this will extract only the ...
+    val fullLineExp = "\"org.jetbrains.kotlin:kotlin-.*(?=\\))".toRegex()
 
-    if (DEBUG) {
-        println("[CCK] - reading this line: " + fullLineExp.find(this)?.value)
-    }
-
-    // this will extract "$kotlin_version" from the string.
-    val removeExp = "classpath.*\"org\\.jetbrains\\.kotlin:kotlin-gradle-plugin:".toRegex()
+    val removeExp = "(?!org.jetbrains.kotlin:kotlin)-.*".toRegex()
 
     return this.replace(fullLineExp) { isolatedLine ->
-        // remove everything before $kotlin_version and the " after it.
-        val kVersion = isolatedLine.value.replace(removeExp, "").replace("\"|\\)".toRegex(),"")
-        "classpath(kotlin(\"gradle-plugin\", version = \"$kVersion\"))"
+
+        // drop first "-" and remove last "
+        val substring = (removeExp.find(isolatedLine.value)?.value ?: "").drop(1).replace("\"","")
+
+        val splittedSubstring = substring.split(":")
+
+        if ("stdlib" in substring) {
+            "kotlin(\"stdlib\", KotlinCompilerVersion.VERSION)"
+        } else if (splittedSubstring.size == 2) {
+            "kotlin(\"${splittedSubstring[0]}\", version = \"${splittedSubstring[1]}\")"
+        } else {
+            "kotlin(\"${splittedSubstring[0]}\")"
+        }
     }
 }
 
@@ -478,8 +473,7 @@ val convertedText = textToConvert
         .convertBuildTypes()
         .convertSigningConfigs()
         .convertExcludeClasspath()
-        .convertKotlinImpl()
-        .convertClasspathKotlin()
+        .convertJetBrainsKotlin()
         .convertSigningConfigBuildType()
         .convertExtToExtra()
 

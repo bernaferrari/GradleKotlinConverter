@@ -120,9 +120,19 @@ The GIF showcases how simple it is:
         <td>kotlin("stdlib", KotlinCompilerVersion.VERSION)</td>
     </tr>
     <tr>
-        <td>Convert Kotlin classpath</td>
+        <td>Convert Kt dependencies (1/3)</td>
         <td>classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kt_v"</td>
         <td>classpath(kotlin("gradle-plugin", version = "$kt_v"))</td>
+    </tr>
+    <tr>
+        <td>Convert Kt dependencies (2/3)</td>
+        <td>impl "org.jetbrains.kotlin:kotlin-stdlib:$kt_v"</td>
+        <td>impl(kotlin("stdlib", KotlinCompilerVersion.VERSION))</td>
+    </tr>
+    <tr>
+        <td>Convert Kt dependencies (3/3)</td>
+        <td>implementation "org.jetbrains.kotlin:kotlin-reflect"</td>
+        <td>implementation(kotlin("reflect"))</td>
     </tr>
     <tr>
         <td>Convert signingConfig</td>
