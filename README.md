@@ -139,6 +139,16 @@ The GIF showcases how simple it is:
         <td>ext.enableCrashlytics = false</td>
         <td>extra.set("enableCrashlytics", false)</td>
     </tr>
+    <tr>
+        <td>Convert plugins</td>
+        <td>apply(...) apply(...)</td>
+        <td>plugins { id(...) id(...) }</td>
+    </tr>
+    <tr>
+        <td>Convert plugin ids</td>
+        <td>id "io.gitlab.arturbosch.detekt" version "1.0"</td>
+        <td>id("io.gitlab.arturbosch.detekt") version "1.0"</td>
+    </tr>
 </table>
 
 You can find all the details on the source code.
