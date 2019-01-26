@@ -112,18 +112,14 @@ fun String.convertPlugins(): String {
 // implementation(":epoxy-annotations")
 fun String.convertDependencies(): String {
 
-    val gradleKeywords = "(implementation|testImplementation|androidTestImplementation|api|annotationProcessor|classpath|kapt|check)".toRegex()
+    val testKeywords = "testImplementation|androidTestImplementation|debugImplementation|compileOnly|"
+    val gradleKeywords = "(${testKeywords}implementation|api|annotationProcessor|classpath|kapt|check)".toRegex()
 
-    val validKeywords = "$gradleKeywords.*".toRegex()
-
-    // ignore cases like kapt { correctErrorTypes = true } but pass kapt("...")
-    // also ignore cases like apply plugin: ('kotlin-kapt")
+    // ignore cases like kapt { correctErrorTypes = true } and apply plugin: ('kotlin-kapt") but pass kapt("...")
     // ignore keyWord followed by a space and a { or a " and a )
-    val invalidKeywords = "$gradleKeywords(.*\\{|\\s*\"\\s*\\))".toRegex()
+    val validKeywords = "((?!$gradleKeywords\\s*[{\"\\)]))$gradleKeywords.*".toRegex()
 
     return this.replace(validKeywords) { substring ->
-
-        if (invalidKeywords.matches(substring.value)) { return@replace substring.value }
 
         // we want to know if it is a implementation, api, etc
         val gradleKeyword = gradleKeywords.find(substring.value)?.value
@@ -288,6 +284,25 @@ fun String.convertProguardFiles(): String {
 }
 
 
+// ext.enableCrashlytics = false
+// becomes
+// extra.set("enableCrashlytics", false)
+fun String.convertExtToExtra(): String {
+
+    // get ext... but not ext { ... }
+    val outerExp = "(?!ext\\s*\\{)ext\\..*".toRegex()
+
+    return this.replace(outerExp) {
+        val split = it.value.split(" ")
+
+        val name = (split.firstOrNull() ?: "").replace("ext.", "")
+        val value = split.lastOrNull() ?: ""
+
+        "extra.set(\"$name\", $value)"
+    }
+}
+
+
 // sourceCompatibility = "1.8" or sourceCompatibility JavaVersion.VERSION_1_8
 // becomes
 // sourceCompatibility = JavaVersion.VERSION_1_8
@@ -442,7 +457,6 @@ fun String.convertClasspathKotlin(): String {
 
 
 // TODO
-// testInstrumentationRunner becomes what?
 // plugin should become one block (3th law of SUPERCILEX: https://twitter.com/SUPERCILEX/status/1079832024456749059)
 // do you have any other needs? Please open an issue.
 
@@ -467,6 +481,7 @@ val convertedText = textToConvert
         .convertKotlinImpl()
         .convertClasspathKotlin()
         .convertSigningConfigBuildType()
+        .convertExtToExtra()
 
 
 println("Success!")

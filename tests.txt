@@ -73,6 +73,8 @@ buildTypes {
     }
     debug {
         debuggable true
+        ext.alwaysUpdateBuildId = false
+        ext.enableCrashlytics = false
     }
 }
 signingConfigs {
