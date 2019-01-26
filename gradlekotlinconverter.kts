@@ -112,7 +112,7 @@ fun String.convertPlugins(): String {
 // implementation(":epoxy-annotations")
 fun String.convertDependencies(): String {
 
-    val gradleKeywords = "(implementation|testImplementation|androidTestImplementation|api|annotationProcessor|classpath|kapt)".toRegex()
+    val gradleKeywords = "(implementation|testImplementation|androidTestImplementation|api|annotationProcessor|classpath|kapt|check)".toRegex()
 
     val validKeywords = "$gradleKeywords.*".toRegex()
 
@@ -139,6 +139,21 @@ fun String.convertDependencies(): String {
         }
     }
 }
+
+
+// signingConfig signingConfigs.release
+// becomes
+// signingConfig = signingConfigs.getByName("release")
+fun String.convertSigningConfigBuildType(): String {
+    val outerExp = "signingConfig.*signingConfigs.*".toRegex()
+
+    return this.replace(outerExp) {
+        // extracts release from signingConfig signingConfigs.release
+        val release = it.value.replace("signingConfig.*signingConfigs.".toRegex(), "")
+        "signingConfig = signingConfigs.getByName(\"$release\")"
+    }
+}
+
 
 
 // buildTypes { release }
@@ -244,7 +259,7 @@ fun String.convertSdkVersion(): String {
 // versionCode = 4
 fun String.convertVersionCode(): String {
 
-    val versionExp = "(applicationId|versionCode|versionName).*".toRegex()
+    val versionExp = "(applicationId|versionCode|versionName|testInstrumentationRunner).*".toRegex()
 
     return this.replace(versionExp) {
         val split = it.value.split(" ")
@@ -451,6 +466,7 @@ val convertedText = textToConvert
         .convertExcludeClasspath()
         .convertKotlinImpl()
         .convertClasspathKotlin()
+        .convertSigningConfigBuildType()
 
 
 println("Success!")
