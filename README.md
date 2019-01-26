@@ -17,7 +17,7 @@ File mode:
 $ ./gradlekotlinconverter.kts build.gradle
 $ kscript gradlekotlinconverter.kts build.gradle
 
-Clipboard mode (still experimental):
+Clipboard mode:
 $ ./gradlekotlinconverter.kts
 ```
 
@@ -26,7 +26,7 @@ $ ./gradlekotlinconverter.kts
 
 📋 Clipboard mode
 ---------------
-Sometimes you just want to copy and paste. This is still experimental, and _implementation_ requires the _dependencies_ block, but it is really useful already.
+Sometimes you just want to copy and paste. Just copy whatever you want, run the script, then paste on your IDE.
 The GIF showcases how simple it is:
 
  ![GIF](/clipboard_mode.gif?raw=true)
@@ -90,7 +90,7 @@ The GIF showcases how simple it is:
         <td>sourceCompatibility = JavaVersion.VERSION_1_8</td>
     </tr>
     <tr>
-        <td>Convert AndroidExtensions</td>
+        <td>Convert androidExtensions</td>
         <td>androidExtensions { experimental = true }</td>
         <td>androidExtensions { isExperimental = true }</td>
     </tr>
@@ -115,24 +115,19 @@ The GIF showcases how simple it is:
         <td>configurations.classpath { exclude(group = "...lombok") }</td>
     </tr>
     <tr>
-        <td>Convert Kotlin stdlib</td>
-        <td>impl "org.jetbrains.kotlin:kotlin-stdlib:$kt_v"</td>
+        <td>Kt dependencies (1/3)</td>
+        <td>"org.jetbrains.kotlin:kotlin-gradle-plugin:$kt_v"</td>
+        <td>kotlin("gradle-plugin", version = "$kt_v")</td>
+    </tr>
+    <tr>
+        <td>Kt dependencies (2/3)</td>
+        <td>"org.jetbrains.kotlin:kotlin-stdlib:$kt_v"</td>
         <td>kotlin("stdlib", KotlinCompilerVersion.VERSION)</td>
     </tr>
     <tr>
-        <td>Convert Kt dependencies (1/3)</td>
-        <td>classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kt_v"</td>
-        <td>classpath(kotlin("gradle-plugin", version = "$kt_v"))</td>
-    </tr>
-    <tr>
-        <td>Convert Kt dependencies (2/3)</td>
-        <td>impl "org.jetbrains.kotlin:kotlin-stdlib:$kt_v"</td>
-        <td>impl(kotlin("stdlib", KotlinCompilerVersion.VERSION))</td>
-    </tr>
-    <tr>
-        <td>Convert Kt dependencies (3/3)</td>
-        <td>implementation "org.jetbrains.kotlin:kotlin-reflect"</td>
-        <td>implementation(kotlin("reflect"))</td>
+        <td>Kt dependencies (3/3)</td>
+        <td>"org.jetbrains.kotlin:kotlin-reflect"</td>
+        <td>kotlin("reflect")</td>
     </tr>
     <tr>
         <td>Convert signingConfig</td>

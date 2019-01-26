@@ -35,7 +35,7 @@ val intro = """
 +    ${"$ gradlekotlinconverter.kts <build.gradle file>".cyan()}                                    +
 +    ${"$ kscript gradlekotlinconverter.kts <build.gradle file>".cyan()}                            +
 +                                                                                       +
-+ Usage with clipboard (experimental):                                                  +
++ Usage with clipboard:                                                                 +
 +    ${"$ gradlekotlinconverter.kts".cyan()}                                                     +
 +---------------------------------------------------------------------------------------+
 +        ${"Get started here: https://github.com/bernaferrari/GradleKotlinConverter".yellow()}        +
