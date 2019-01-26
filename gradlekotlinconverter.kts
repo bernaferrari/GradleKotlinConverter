@@ -117,7 +117,7 @@ fun String.convertDependencies(): String {
 
     // ignore cases like kapt { correctErrorTypes = true } and apply plugin: ('kotlin-kapt") but pass kapt("...")
     // ignore keyWord followed by a space and a { or a " and a )
-    val validKeywords = "(?!$gradleKeywords\\s*(\\{|\"\\)))$gradleKeywords.*".toRegex()
+    val validKeywords = "(?!$gradleKeywords\\s*(\\{|\"\\)|\\.))$gradleKeywords.*".toRegex()
 
     return this.replace(validKeywords) { substring ->
 
