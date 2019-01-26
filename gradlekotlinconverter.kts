@@ -250,6 +250,22 @@ fun String.addParentheses(): String {
 }
 
 
+// id "io.gitlab.arturbosch.detekt" version "1.0.0.RC8"
+// becomes
+// id("io.gitlab.arturbosch.detekt") version "1.0.0.RC8"
+fun String.addParenthesisToId(): String {
+
+    // this will only catch id "..." version ..., should skip id("...")
+    // should get the id "..."
+    val idExp = "id\\s*\".*?\"".toRegex()
+
+    return this.replace(idExp) {
+        // remove the "id " before the real id
+        val idValue = it.value.replace("id\\s*".toRegex(), "")
+        "id($idValue)"
+    }
+}
+
 // versionCode 4
 // becomes
 // versionCode = 4
@@ -504,7 +520,7 @@ val convertedText = textToConvert
         .convertJetBrainsKotlin()
         .convertSigningConfigBuildType()
         .convertExtToExtra()
-
+        .addParenthesisToId()
 
 println("Success!")
 

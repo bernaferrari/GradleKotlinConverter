@@ -10,6 +10,14 @@ dependencies {
     classpath("com.github.ben-manes:gradle-versions-plugin:0.20.0")
 }
 
+// this should not be converted to block, like the first ones
+apply plugin: ("gms")
+
+plugins {
+    id "io.gitlab.arturbosch.detekt" version "1.0.0.RC8"
+    id "io.gitlab.arturbosch.detekt"
+}
+
 dependencies {
   ext {
      def test = '1.0.1'
