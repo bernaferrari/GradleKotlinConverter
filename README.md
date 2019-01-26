@@ -124,6 +124,16 @@ The GIF showcases how simple it is:
         <td>classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kt_v"</td>
         <td>classpath(kotlin("gradle-plugin", version = "$kt_v"))</td>
     </tr>
+    <tr>
+        <td>Convert signingConfig</td>
+        <td>signingConfig signingConfigs.release</td>
+        <td>signingConfig = signingConfigs.getByName("release")</td>
+    </tr>
+    <tr>
+        <td>Convert extras</td>
+        <td>ext.enableCrashlytics = false</td>
+        <td>extra.set("enableCrashlytics", false)</td>
+    </tr>
 </table>
 
 You can find all the details on the source code.
