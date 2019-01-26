@@ -152,9 +152,7 @@ In that case, please make sure you are using git or have a backup, in case thing
 
 😨 Things it still can't do
 -------
-- To avoid bugs, all plugins should be in one block ([3th law of SUPERCILEX](https://twitter.com/SUPERCILEX/status/1079832024456749059))
-- If you find anything else, just tell me.
-
+- If you find anything, just tell me.
 
 Issue Tracking
 -------

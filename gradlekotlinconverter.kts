@@ -112,8 +112,8 @@ fun String.convertPlugins(): String {
 // implementation(":epoxy-annotations")
 fun String.convertDependencies(): String {
 
-    val testKeywords = "testImplementation|androidTestImplementation|debugImplementation|compileOnly|"
-    val gradleKeywords = "(${testKeywords}implementation|api|annotationProcessor|classpath|kapt|check)".toRegex()
+    val testKeywords = "testImplementation|androidTestImplementation|debugImplementation|compileOnly"
+    val gradleKeywords = "($testKeywords|implementation|api|annotationProcessor|classpath|kapt|check)".toRegex()
 
     // ignore cases like kapt { correctErrorTypes = true } and apply plugin: ('kotlin-kapt") but pass kapt("...")
     // ignore keyWord followed by a space and a { or a " and a )
@@ -233,7 +233,7 @@ fun String.convertMaven(): String {
 // compileSdkVersion 28
 // becomes
 // compileSdkVersion(28)
-fun String.convertSdkVersion(): String {
+fun String.addParentheses(): String {
 
     val sdkExp = "(compileSdkVersion|minSdkVersion|targetSdkVersion)\\s*\\d*".toRegex()
 
@@ -253,9 +253,13 @@ fun String.convertSdkVersion(): String {
 // versionCode 4
 // becomes
 // versionCode = 4
-fun String.convertVersionCode(): String {
+fun String.addEquals(): String {
 
-    val versionExp = "(applicationId|versionCode|versionName|testInstrumentationRunner).*".toRegex()
+    val signing = "keyAlias|keyPassword|storeFile|storePassword"
+    val other = "multiDexEnabled|correctErrorTypes"
+    val defaultConfig = "applicationId|versionCode|versionName|testInstrumentationRunner"
+
+    val versionExp = "($defaultConfig|$signing|$other).*".toRegex()
 
     return this.replace(versionExp) {
         val split = it.value.split(" ")
@@ -419,6 +423,7 @@ fun String.convertExcludeClasspath(): String {
     }
 }
 
+
 // classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 // becomes
 // classpath(kotlin("gradle-plugin", version = "$kotlin_version"))
@@ -451,9 +456,31 @@ fun String.convertJetBrainsKotlin(): String {
 }
 
 
-// TODO
-// plugin should become one block (3th law of SUPERCILEX: https://twitter.com/SUPERCILEX/status/1079832024456749059)
-// do you have any other needs? Please open an issue.
+// implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+// becomes
+// implementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
+fun String.convertPluginsIntoOneBlock(): String {
+
+    // group plugin expressions. There can't be any space or tabs on the start of the line, else the regex will fail.
+    // ok example:
+    // apply(...)
+    // apply(...)
+    //
+    // not ok example:
+    // apply(...)
+    //    apply(...)
+    val fullLineExp = "(apply\\(plugin\\s*=\\s*\".*\"\\)[\\s\\S]){2,}".toRegex()
+
+    val isolatedId = "\".*\"(?=\\))".toRegex()
+
+    return this.replace(fullLineExp) { isolatedLine ->
+        // this will fold the ids into a single string
+        val plugins = isolatedId.findAll(isolatedLine.value)?.fold("") { acc, matchResult ->
+            acc + "    id(${matchResult.value})\n"
+        }
+        "plugins {\n$plugins}\n"
+    }
+}
 
 print("[${currentTimeFormatted()}] -- Starting conversion.. ")
 
@@ -461,10 +488,11 @@ val convertedText = textToConvert
         .replaceApostrophes()
         .replaceDefWithVal()
         .convertPlugins()
+        .convertPluginsIntoOneBlock()
         .convertDependencies()
         .convertMaven()
-        .convertSdkVersion()
-        .convertVersionCode()
+        .addParentheses()
+        .addEquals()
         .convertJavaCompatibility()
         .convertCleanTask()
         .convertProguardFiles()
