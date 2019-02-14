@@ -27,7 +27,8 @@ dependencies {
   kapt project(':epoxy-processor')
   implementation ':epoxy-annotations'
   def ANDROIDX_APPCOMPAT = '1.0.0'
-  implementation "androidx.appcompat:appcompat:$ANDROIDX_APPCOMPAT"
+  compile "androidx.appcompat:appcompat:$ANDROIDX_APPCOMPAT"
+  testCompile "com.randomDependency:1.0.0"
 }
 
 configurations.classpath.exclude group: 'com.android.tools.external.lombok'

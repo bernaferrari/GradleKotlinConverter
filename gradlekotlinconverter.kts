@@ -140,6 +140,24 @@ fun String.convertDependencies(): String {
 // signingConfig signingConfigs.release
 // becomes
 // signingConfig = signingConfigs.getByName("release")
+fun String.convertCompileToImplementation(): String {
+    val outerExp = "(compile|testCompile).*\".*\"".toRegex()
+
+    return this.replace(outerExp) {
+
+        if ("testCompile" in it.value) {
+            it.value.replace("testCompile", "testImplementation")
+        } else {
+            it.value.replace("compile", "implementation")
+        }
+    }
+}
+
+
+
+// signingConfig signingConfigs.release
+// becomes
+// signingConfig = signingConfigs.getByName("release")
 fun String.convertSigningConfigBuildType(): String {
     val outerExp = "signingConfig.*signingConfigs.*".toRegex()
 
@@ -514,6 +532,7 @@ val convertedText = textToConvert
         .replaceDefWithVal()
         .convertPlugins()
         .convertPluginsIntoOneBlock()
+        .convertCompileToImplementation()
         .convertDependencies()
         .convertMaven()
         .addParentheses()
