@@ -31,6 +31,8 @@ dependencies {
   testCompile "com.randomDependency:1.0.0"
 }
 
+testImplementation(group: "junit", name: "junit", version: "4.12")
+
 configurations.classpath.exclude group: 'com.android.tools.external.lombok'
 
 implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"

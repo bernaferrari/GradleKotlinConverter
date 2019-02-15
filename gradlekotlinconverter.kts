@@ -1,4 +1,4 @@
-#!/usr/bin/env kscript
+#!/usr/bin/env kotlinc -script
 
 import java.io.File
 import kotlin.system.exitProcess
@@ -32,11 +32,11 @@ val intro = """
 + It is not perfect and there will be things to be manually solved, but it helps A LOT. +
 +---------------------------------------------------------------------------------------+
 + Usage with files:                                                                     +
-+    ${"$ gradlekotlinconverter.kts <build.gradle file>".cyan()}                                    +
-+    ${"$ kscript gradlekotlinconverter.kts <build.gradle file>".cyan()}                            +
++    ${"$ ./gradlekotlinconverter.kts <build.gradle file>".cyan()}                                  +
++    ${"$ kotlinc -script gradlekotlinconverter.kts <build.gradle file>".cyan()}                    +
 +                                                                                       +
 + Usage with clipboard:                                                                 +
-+    ${"$ gradlekotlinconverter.kts".cyan()}                                                     +
++    ${"$ ./gradlekotlinconverter.kts".cyan()}                                                      +
 +---------------------------------------------------------------------------------------+
 +        ${"Get started here: https://github.com/bernaferrari/GradleKotlinConverter".yellow()}        +
 +---------------------------------------------------------------------------------------+
@@ -525,6 +525,19 @@ fun String.convertPluginsIntoOneBlock(): String {
     }
 }
 
+// testImplementation(group: "junit", name: "junit", version: "4.12")
+// becomes
+// testImplementation(group = "junit", name = "junit", version = "4.12")
+fun String.replaceColonWithEquals(): String {
+
+    // this get "group:"
+    val expression = "\\w*:\\s*\".*?\"".toRegex()
+
+    return this.replace(expression) {
+        it.value.replace(":", " =")
+    }
+}
+
 print("[${currentTimeFormatted()}] -- Starting conversion.. ")
 
 val convertedText = textToConvert
@@ -549,6 +562,7 @@ val convertedText = textToConvert
         .convertSigningConfigBuildType()
         .convertExtToExtra()
         .addParenthesisToId()
+        .replaceColonWithEquals()
 
 println("Success!")
 

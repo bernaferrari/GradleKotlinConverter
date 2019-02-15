@@ -9,17 +9,18 @@ Please see this tool as a helper, a first resource like Android Studio's Java co
 💻 Getting Started
 ---------------
 
-The tool was developed using [kscript](https://github.com/holgerbrandl/kscript). You can find how to install it [here](https://github.com/holgerbrandl/kscript#installation). 
-Gradle 5 is [currently incompatible](https://github.com/holgerbrandl/kscript/issues/197) with the tool that packages it, so I'm afraid you will need to [install kscript](https://github.com/holgerbrandl/kscript#installation) before running this tool. It should be really easy, however. After that, you can run the script by calling:
 
 ```
 File mode:
 $ ./gradlekotlinconverter.kts build.gradle
-$ kscript gradlekotlinconverter.kts build.gradle
+$ kotlinc -script gradlekotlinconverter.kts build.gradle
 
 Clipboard mode:
 $ ./gradlekotlinconverter.kts
 ```
+
+The tool was initially developed using [kscript](https://github.com/holgerbrandl/kscript). You will find how to install it [here](https://github.com/holgerbrandl/kscript#installation).
+If you want to run the script with kscript, just call, for example: `kscript gradlekotlinconverter.kts build.gradle`
 
 **Motivation**: on my own apps, I've used apostrophes \' instead of quotation marks \" since forever, so it wasn't fun when I discovered I would need to modify more than 100 lines of code to make Kotlin DSL work. Besides this, the tool also solves a few common issues that might appear, like the ```task clean(type: Delete)``` that becomes a completely different thing.
 
@@ -148,6 +149,11 @@ The GIF showcases how simple it is:
         <td>Convert plugin ids</td>
         <td>id "io.gitlab.arturbosch.detekt" version "1.0"</td>
         <td>id("io.gitlab.arturbosch.detekt") version "1.0"</td>
+    </tr>
+    <tr>
+        <td>Convert plugin ids</td>
+        <td>testImpl(name: "junit", version: "4.12")</td>
+        <td>testImpl(name = "junit", version = "4.12")</td>
     </tr>
 </table>
 
