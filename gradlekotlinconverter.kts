@@ -112,7 +112,7 @@ fun String.convertPlugins(): String {
 // implementation(":epoxy-annotations")
 fun String.convertDependencies(): String {
 
-    val testKeywords = "testImplementation|androidTestImplementation|debugImplementation|compileOnly"
+    val testKeywords = "testImplementation|androidTestImplementation|debugImplementation|compileOnly|testCompileOnly"
     val gradleKeywords = "($testKeywords|implementation|api|annotationProcessor|classpath|kapt|check)".toRegex()
 
     // ignore cases like kapt { correctErrorTypes = true } and apply plugin: ('kotlin-kapt") but pass kapt("...")
@@ -141,7 +141,7 @@ fun String.convertDependencies(): String {
 // becomes
 // signingConfig = signingConfigs.getByName("release")
 fun String.convertCompileToImplementation(): String {
-    val outerExp = "(compile|testCompile).*\".*\"".toRegex()
+    val outerExp = "(compile|testCompile)[^O].*\".*\"".toRegex()
 
     return this.replace(outerExp) {
 
