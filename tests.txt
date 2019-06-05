@@ -29,6 +29,8 @@ dependencies {
   def ANDROIDX_APPCOMPAT = '1.0.0'
   compile "androidx.appcompat:appcompat:$ANDROIDX_APPCOMPAT"
   testCompile "com.randomDependency:1.0.0"
+  compileOnly group: 'commons-io', name: 'commons-io', version: '2.6'
+  testCompileOnly group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
 }
 
 testImplementation(group: "junit", name: "junit", version: "4.12")
