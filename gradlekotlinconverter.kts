@@ -92,6 +92,18 @@ fun String.replaceApostrophes(): String = this.replace("'", "\"")
 // val appcompat = "1.0.0"
 fun String.replaceDefWithVal(): String = this.replace("def ", "val ")
 
+// String foo = "bar"
+// becomes
+// val foo: String = "bar"
+fun String.convertVariableDeclaration(): String {
+    val varDeclExp = """(final\s)?\s*(\w+)\s+(\w+)\s*=\s*(.*)""".toRegex()
+
+    return this.replace(varDeclExp) {
+        val (final, type, id, value) = it.destructured
+        if (type == "val") this
+        else "val $id: $type = $value"
+    }
+}
 
 // apply plugin: "kotlin-android"
 // becomes
@@ -543,6 +555,7 @@ print("[${currentTimeFormatted()}] -- Starting conversion.. ")
 val convertedText = textToConvert
         .replaceApostrophes()
         .replaceDefWithVal()
+        .convertVariableDeclaration()
         .convertPlugins()
         .convertPluginsIntoOneBlock()
         .convertCompileToImplementation()
