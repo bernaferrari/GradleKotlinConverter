@@ -7,7 +7,6 @@ import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.system.exitProcess
-import kotlin.text.RegexOption.DOT_MATCHES_ALL
 
 // Bernardo Ferrari
 // APACHE-2 License
@@ -102,10 +101,8 @@ fun String.convertVariableDeclaration(): String {
         val (type, genericsType, id, value) = it.destructured
         if (type == "val") {
             this
-        } else if (genericsType != null) {
-            "val $id: $type$genericsType = $value"
         } else {
-            "val $id: $type = $value"
+            "val $id: $type${genericsType.orEmpty()} = $value"
         }
     }
 }
