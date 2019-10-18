@@ -378,14 +378,16 @@ fun String.convertJavaCompatibility(): String {
 }
 
 
-// converts the clean task, which is very common to find
-fun String.convertCleanTask(): String {
+// task foo(type: Bar)
+// becomes
+// tasks.register<Bar>("foo")
+fun String.convertTasks(): String {
+    val taskExp = """task (\w+)\(type: (\w+)\)""".toRegex()
 
-    val cleanExp = "task clean\\(type: Delete\\)\\s*\\{[\\s\\S]*}".toRegex()
-    val registerClean = "tasks.register<Delete>(\"clean\").configure {\n" +
-            "    delete(rootProject.buildDir)\n }"
-
-    return this.replace(cleanExp, registerClean)
+    return this.replace(taskExp) {
+        val (name, type) = it.destructured
+        """tasks.register<$type>("$name")"""
+    }
 }
 
 
@@ -566,7 +568,7 @@ val convertedText = textToConvert
         .addParentheses()
         .addEquals()
         .convertJavaCompatibility()
-        .convertCleanTask()
+        .convertTasks()
         .convertProguardFiles()
         .convertInternalBlocks()
         .convertInclude()
