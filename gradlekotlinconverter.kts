@@ -1,13 +1,13 @@
 #!/usr/bin/env kotlinc -script
 
-import java.io.File
-import kotlin.system.exitProcess
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
-import java.io.IOException
+import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import kotlin.system.exitProcess
+import kotlin.text.RegexOption.DOT_MATCHES_ALL
 
 // Bernardo Ferrari
 // APACHE-2 License
@@ -96,12 +96,17 @@ fun String.replaceDefWithVal(): String = this.replace("def ", "val ")
 // becomes
 // val foo: String = "bar"
 fun String.convertVariableDeclaration(): String {
-    val varDeclExp = """(final\s)?\s*(\w+)\s+(\w+)\s*=\s*(.*)""".toRegex()
+    val varDeclExp = """(?:final\s)?\s*(\w+)(<.+>)?\s+(\w+)\s*=\s*(.*)""".toRegex()
 
     return this.replace(varDeclExp) {
-        val (final, type, id, value) = it.destructured
-        if (type == "val") this
-        else "val $id: $type = $value"
+        val (type, genericsType, id, value) = it.destructured
+        if (type == "val") {
+            this
+        } else if (genericsType != null) {
+            "val $id: $type$genericsType = $value"
+        } else {
+            "val $id: $type = $value"
+        }
     }
 }
 
