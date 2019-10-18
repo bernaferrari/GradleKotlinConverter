@@ -8,6 +8,7 @@ import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.io.IOException
+import kotlin.text.RegexOption.*
 
 // Bernardo Ferrari
 // APACHE-2 License
@@ -105,19 +106,29 @@ fun String.convertVariableDeclaration(): String {
     }
 }
 
+// [items...]
+// becomes
+// listOf(items...)
+fun String.convertArrayExpression(): String {
+    val arrayExp = """\[([^\]]*?)\]""".toRegex(DOT_MATCHES_ALL)
+
+    return this.replace(arrayExp) {
+        "listOf(${it.groupValues[1]})"
+    }
+}
+
 // apply plugin: "kotlin-android"
 // becomes
 // apply(plugin = "kotlin-android")
 fun String.convertPlugins(): String {
-    val pluginsExp = "apply plugin:((\\s*\"\\S*\")|(\\s*[(]\"\\S*\"[)]))".toRegex()
+    val pluginsExp = """apply plugin: (\S+)""".toRegex()
 
     return this.replace(pluginsExp) {
-        val pluginIdExp = "\"\\S*\"".toRegex()
+        val (pluginId) = it.destructured
         // it identifies the plugin id and rebuilds the line.
-        "apply(plugin = ${pluginIdExp.find(it.value)?.value})"
+        "apply(plugin = $pluginId)"
     }
 }
-
 
 // implementation ":epoxy-annotations"
 // becomes
@@ -340,15 +351,12 @@ fun String.convertProguardFiles(): String {
 fun String.convertExtToExtra(): String {
 
     // get ext... but not ext { ... }
-    val outerExp = "(?!ext\\s*\\{)ext\\..*".toRegex()
+    val outerExp = """ext\.(\w+)\s*=\s*(.*)""".toRegex()
 
     return this.replace(outerExp) {
-        val split = it.value.split(" ")
+        val (name, value) = it.destructured
 
-        val name = (split.firstOrNull() ?: "").replace("ext.", "")
-        val value = split.lastOrNull() ?: ""
-
-        "extra.set(\"$name\", $value)"
+        "extra[\"$name\"] = $value"
     }
 }
 
@@ -555,6 +563,7 @@ print("[${currentTimeFormatted()}] -- Starting conversion.. ")
 val convertedText = textToConvert
         .replaceApostrophes()
         .replaceDefWithVal()
+        .convertArrayExpression()
         .convertVariableDeclaration()
         .convertPlugins()
         .convertPluginsIntoOneBlock()
