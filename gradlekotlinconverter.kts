@@ -92,11 +92,11 @@ fun String.replaceApostrophes(): String = this.replace("'", "\"")
 // val appcompat = "1.0.0"
 fun String.replaceDefWithVal(): String = this.replace("def ", "val ")
 
-// String foo = "bar"
+// final String<T> foo = "bar"
 // becomes
-// val foo: String = "bar"
+// val foo: String<T> = "bar"
 fun String.convertVariableDeclaration(): String {
-    val varDeclExp = """(?:final\s)?\s*(\w+)(<.+>)?\s+(\w+)\s*=\s*(.*)""".toRegex()
+    val varDeclExp = """(?:final\s+)?(\w+)(<.+>)? +(\w+)\s*=\s*(.+)""".toRegex()
 
     return this.replace(varDeclExp) {
         val (type, genericsType, id, value) = it.destructured
