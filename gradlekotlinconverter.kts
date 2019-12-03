@@ -1,13 +1,13 @@
 #!/usr/bin/env kotlinc -script
 
-import java.io.File
-import kotlin.system.exitProcess
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
+import java.io.File
 import java.io.IOException
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import kotlin.system.exitProcess
 import kotlin.text.RegexOption.*
 
 // Bernardo Ferrari
@@ -93,16 +93,19 @@ fun String.replaceApostrophes(): String = this.replace("'", "\"")
 // val appcompat = "1.0.0"
 fun String.replaceDefWithVal(): String = this.replace("def ", "val ")
 
-// String foo = "bar"
+// final String<T> foo = "bar"
 // becomes
-// val foo: String = "bar"
+// val foo: String<T> = "bar"
 fun String.convertVariableDeclaration(): String {
-    val varDeclExp = """(final\s)?\s*(\w+)\s+(\w+)\s*=\s*(.*)""".toRegex()
+    val varDeclExp = """(?:final\s+)?(\w+)(<.+>)? +(\w+)\s*=\s*(.+)""".toRegex()
 
     return this.replace(varDeclExp) {
-        val (final, type, id, value) = it.destructured
-        if (type == "val") this
-        else "val $id: $type = $value"
+        val (type, genericsType, id, value) = it.destructured
+        if (type == "val") {
+            this
+        } else {
+            "val $id: $type${genericsType.orEmpty()} = $value"
+        }
     }
 }
 
@@ -384,14 +387,16 @@ fun String.convertJavaCompatibility(): String {
 }
 
 
-// converts the clean task, which is very common to find
-fun String.convertCleanTask(): String {
+// task foo(type: Bar)
+// becomes
+// tasks.register<Bar>("foo")
+fun String.convertTasks(): String {
+    val taskExp = """task (\w+)\(type: (\w+)\)""".toRegex()
 
-    val cleanExp = "task clean\\(type: Delete\\)\\s*\\{[\\s\\S]*}".toRegex()
-    val registerClean = "tasks.register<Delete>(\"clean\").configure {\n" +
-            "    delete(rootProject.buildDir)\n }"
-
-    return this.replace(cleanExp, registerClean)
+    return this.replace(taskExp) {
+        val (name, type) = it.destructured
+        """tasks.register<$type>("$name")"""
+    }
 }
 
 
@@ -573,7 +578,7 @@ val convertedText = textToConvert
         .addParentheses()
         .addEquals()
         .convertJavaCompatibility()
-        .convertCleanTask()
+        .convertTasks()
         .convertProguardFiles()
         .convertInternalBlocks()
         .convertInclude()
