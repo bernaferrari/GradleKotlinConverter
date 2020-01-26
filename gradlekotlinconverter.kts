@@ -202,6 +202,12 @@ fun String.convertSigningConfigBuildType(): String {
 fun String.convertBuildTypes(): String = this.convertNestedTypes("buildTypes", "named")
 
 
+// sourceSets { test }
+// becomes
+// sourceSets { named("test") }
+fun String.convertSourceSets(): String = this.convertNestedTypes("sourceSets", "named")
+
+
 // signingConfigs { release }
 // becomes
 // signingConfigs { register("release") }
@@ -583,6 +589,7 @@ val convertedText = textToConvert
         .convertInternalBlocks()
         .convertInclude()
         .convertBuildTypes()
+        .convertSourceSets()
         .convertSigningConfigs()
         .convertExcludeClasspath()
         .convertJetBrainsKotlin()
