@@ -97,6 +97,7 @@ allprojects {
     repositories {
         google()
         jcenter()
+        maven("https://jitpack.io")
         maven("https://maven.fabric.io/public")
         maven("https://dl.bintray.com/kotlin/kotlin-eap")
     }

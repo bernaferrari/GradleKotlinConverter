@@ -65,6 +65,7 @@ allprojects {
     repositories {
         google()
         jcenter()
+        maven { url = uri("https://jitpack.io") }
         maven { url 'https://maven.fabric.io/public' }
         maven { url 'https://dl.bintray.com/kotlin/kotlin-eap' }
     }
