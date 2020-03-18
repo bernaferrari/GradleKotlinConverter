@@ -275,7 +275,7 @@ fun String.convertMaven(): String {
     val mavenExp = "maven\\s*\\{\\s*url\\s*(.*?)\\s*?}".toRegex()
 
     return this.replace(mavenExp) {
-        it.value.replace("(url)|( )".toRegex(), "")
+        it.value.replace("(= *uri *\\()|\\)|(url)|( )".toRegex(), "")
                 .replace("{", "(")
                 .replace("}", ")")
     }
