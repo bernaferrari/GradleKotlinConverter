@@ -153,7 +153,7 @@ fun String.convertDependencies(): String {
         val gradleKeyword = gradleKeywords.find(substring.value)?.value
 
         // implementation ':epoxy-annotations' becomes 'epoxy-annotations'
-        val isolated = substring.value.replace(gradleKeywords, "").trim()
+        val isolated = substring.value.replaceFirst(gradleKeywords, "").trim()
 
         // can't be && for the kapt project(':epoxy-processor') scenario, where there is a ) on the last element.
         if (isolated != "" && (isolated.first() != '(' || isolated.last { it != ' ' } != ')')) {
@@ -163,7 +163,6 @@ fun String.convertDependencies(): String {
         }
     }
 }
-
 
 // signingConfig signingConfigs.release
 // becomes
