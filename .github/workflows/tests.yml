@@ -1,0 +1,30 @@
+name: "diff results"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "diff"
+  diff:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+
+    - name: Install Kotlin
+      run: sudo snap install --classic kotlin
+
+    # Runs a the script. It will produce "tests.txt.kts"
+    - name: Run the script
+      run: kotlinc -script gradlekotlinconverter.kts test_build_gradle skipintro
+
+    # Compare the result with the expected result.
+    - name: perform the diff
+      run: diff test_build_gradle.kts expected_build_gradle.kts
