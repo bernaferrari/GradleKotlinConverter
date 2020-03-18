@@ -8,7 +8,7 @@ Please see this tool as a helper, a first resource like Android Studio's Java co
 
 💻 Getting Started
 ---------------
-
+The script was written in Kotlin and depends on JVM (for File access). If you need to install Kotlin for command line access, [check here](https://kotlinlang.org/docs/tutorials/command-line.html) (`brew install kotlin`).
 
 ```
 File mode:
@@ -18,9 +18,6 @@ $ kotlinc -script gradlekotlinconverter.kts build.gradle
 Clipboard mode:
 $ ./gradlekotlinconverter.kts
 ```
-
-The tool was initially developed using [kscript](https://github.com/holgerbrandl/kscript). You can find how to install it [here](https://github.com/holgerbrandl/kscript#installation).
-If you want to run the script with kscript, just call, for example: `kscript gradlekotlinconverter.kts build.gradle`
 
 **Motivation**: on my own apps, I've used apostrophes \' instead of quotation marks \" since forever, so it wasn't fun when I discovered I would need to modify more than 100 lines of code to make Kotlin DSL work. Besides this, the tool also solves a few common issues that might appear, like the ```task clean(type: Delete)``` that becomes a completely different thing.
 
