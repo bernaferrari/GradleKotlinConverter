@@ -93,7 +93,12 @@ fun String.replaceApostrophes(): String = this.replace("'", "\"")
 // def appcompat = "1.0.0"
 // becomes
 // val appcompat = "1.0.0"
-fun String.replaceDefWithVal(): String = this.replace("def ", "val ")
+fun String.replaceDefWithVal(): String = this.replace("(^|\\s)def ".toRegex()) { valReplacer ->
+    // only convert when " def " or "def " (start of the line).
+    // if a variable is named highdef, it won't be converted.
+    valReplacer.value.replace("def", "val")
+}
+
 
 // final String<T> foo = "bar"
 // becomes
@@ -111,6 +116,7 @@ fun String.convertVariableDeclaration(): String {
     }
 }
 
+
 // [items...]
 // becomes
 // listOf(items...)
@@ -121,6 +127,7 @@ fun String.convertArrayExpression(): String {
         "listOf(${it.groupValues[1]})"
     }
 }
+
 
 // apply plugin: "kotlin-android"
 // becomes
@@ -135,38 +142,11 @@ fun String.convertPlugins(): String {
     }
 }
 
+
+// NEED TO RUN BEFORE [convertDependencies].
+// compile ":epoxy-annotations"
+// becomes
 // implementation ":epoxy-annotations"
-// becomes
-// implementation(":epoxy-annotations")
-fun String.convertDependencies(): String {
-
-    val testKeywords = "testImplementation|androidTestImplementation|debugImplementation|compileOnly|testCompileOnly"
-    val gradleKeywords = "($testKeywords|implementation|api|annotationProcessor|classpath|kapt|check)".toRegex()
-
-    // ignore cases like kapt { correctErrorTypes = true } and apply plugin: ('kotlin-kapt") but pass kapt("...")
-    // ignore keyWord followed by a space and a { or a " and a )
-    val validKeywords = "(?!$gradleKeywords\\s*(\\{|\"\\)|\\.))$gradleKeywords.*".toRegex()
-
-    return this.replace(validKeywords) { substring ->
-
-        // we want to know if it is a implementation, api, etc
-        val gradleKeyword = gradleKeywords.find(substring.value)?.value
-
-        // implementation ':epoxy-annotations' becomes 'epoxy-annotations'
-        val isolated = substring.value.replaceFirst(gradleKeywords, "").trim()
-
-        // can't be && for the kapt project(':epoxy-processor') scenario, where there is a ) on the last element.
-        if (isolated != "" && (isolated.first() != '(' || isolated.last { it != ' ' } != ')')) {
-            "$gradleKeyword($isolated)"
-        } else {
-            "$gradleKeyword$isolated"
-        }
-    }
-}
-
-// signingConfig signingConfigs.release
-// becomes
-// signingConfig = signingConfigs.getByName("release")
 fun String.convertCompileToImplementation(): String {
     val outerExp = "(compile|testCompile)(?!O).*\".*\"".toRegex()
 
@@ -181,6 +161,41 @@ fun String.convertCompileToImplementation(): String {
 }
 
 
+// implementation ":epoxy-annotations"
+// becomes
+// implementation(":epoxy-annotations")
+fun String.convertDependencies(): String {
+
+    val testKeywords = "testImplementation|androidTestImplementation|debugImplementation|compileOnly|testCompileOnly|runtimeOnly|developmentOnly"
+    val gradleKeywords = "($testKeywords|implementation|api|annotationProcessor|classpath|kapt|check)".toRegex()
+
+    // ignore cases like kapt { correctErrorTypes = true } and apply plugin: ('kotlin-kapt") but pass kapt("...")
+    // ignore keyWord followed by a space and a { or a " and a )
+    val validKeywords = "(?!$gradleKeywords\\s*(\\{|\"\\)|\\.))$gradleKeywords.*".toRegex()
+
+    return this.replace(validKeywords) { substring ->
+
+        // retrieve the comment [//this is a comment], if any
+        val comment = "\\s*\\/\\/.*".toRegex().find(substring.value)?.value ?: ""
+
+        // remove the comment from the string. It will be added again at the end.
+        val processedSubstring = substring.value.replace(comment, "")
+
+        // we want to know if it is a implementation, api, etc
+        val gradleKeyword = gradleKeywords.find(processedSubstring)?.value
+
+        // implementation ':epoxy-annotations' becomes 'epoxy-annotations'
+        val isolated = processedSubstring.replaceFirst(gradleKeywords, "").trim()
+
+        // can't be && for the kapt project(':epoxy-processor') scenario, where there is a ) on the last element.
+        if (isolated != "" && (isolated.first() != '(' || isolated.last { it != ' ' } != ')')) {
+            "$gradleKeyword($isolated)$comment"
+        } else {
+            "$gradleKeyword$isolated$comment"
+        }
+    }
+}
+
 
 // signingConfig signingConfigs.release
 // becomes
@@ -194,7 +209,6 @@ fun String.convertSigningConfigBuildType(): String {
         "signingConfig = signingConfigs.getByName(\"$release\")"
     }
 }
-
 
 
 // buildTypes { release }
@@ -223,6 +237,7 @@ fun String.convertNestedTypes(buildTypes: String, named: String): String {
         }
     }
 }
+
 
 fun String.getExpressionBlock(
         expression: Regex,
@@ -316,6 +331,7 @@ fun String.addParenthesisToId(): String {
         "id($idValue)"
     }
 }
+
 
 // versionCode 4
 // becomes

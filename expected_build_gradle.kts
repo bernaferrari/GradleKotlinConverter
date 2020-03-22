@@ -50,9 +50,10 @@ dependencies {
   ext {
      val test = "1.0.1"
   }
+  val highdef = "1.1.0"
   val testing = "1.0.2"
   implementation(rootProject.deps.androidPagingComponent)
-  implementation(project(":customer-api"))
+  implementation(project(":customer-api")) // comment!
   kapt(project(":epoxy-processor"))
   implementation(":epoxy-annotations")
   val ANDROIDX_APPCOMPAT = "1.0.0"
