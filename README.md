@@ -1,3 +1,5 @@
+![Image of GradleKotlinConverter](logo.png)
+
 Gradle Kotlin DSL converter
 =================
 
