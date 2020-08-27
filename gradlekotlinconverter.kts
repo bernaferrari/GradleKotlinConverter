@@ -1,4 +1,4 @@
-#!/usr/bin/env kotlinc -script
+#!/usr/bin/env -S kotlinc -script
 
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
