@@ -1,5 +1,5 @@
 #!/usr/bin/env -S kotlinc -script
-
+// https://github.com/bernaferrari/GradleKotlinConverter/blob/master/gradlekotlinconverter.kts
 import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
@@ -100,6 +100,19 @@ fun String.replaceDefWithVal(): String = this.replace("(^|\\s)def ".toRegex()) {
 }
 
 
+fun String.convertType(): String =
+        when (this) {
+            "byte" -> "Byte"
+            "short" -> "Short"
+            "int" -> "Int"
+            "long" -> "Long"
+            "float" -> "Float"
+            "double" -> "Double"
+            "char" -> "Char"
+            "boolean" -> "Boolean"
+            else -> this
+        }
+
 // final String<T> foo = "bar"
 // becomes
 // val foo: String<T> = "bar"
@@ -111,7 +124,7 @@ fun String.convertVariableDeclaration(): String {
         if (type == "val") {
             this
         } else {
-            "val $id: $type${genericsType.orEmpty()} = $value"
+            "val $id: ${type.convertType()}${genericsType.orEmpty()} = $value"
         }
     }
 }
@@ -295,20 +308,20 @@ fun String.convertMaven(): String {
     }
 }
 
+var showWarningGroovyVariables = false
 
 // compileSdkVersion 28
 // becomes
 // compileSdkVersion(28)
 fun String.addParentheses(): String {
 
-    val sdkExp = "(compileSdkVersion|minSdkVersion|targetSdkVersion)\\s*\\d*".toRegex()
+    val sdkExp = "(compileSdkVersion|minSdkVersion|targetSdkVersion)\\s*([^\\s]*)(.*)".toRegex() // include any word, as it may be a variable
 
     return this.replace(sdkExp) {
-        val split = it.value.split(" ")
-
-        // if there is more than one whitespace, the last().toIntOrNull() will find.
-        if (split.lastOrNull { it.toIntOrNull() != null } != null) {
-            "${split[0]}(${split.last()})"
+        val groups = it.groupValues
+        if (groups.size > 3) {
+            if (groups[2].toIntOrNull() == null) showWarningGroovyVariables = true
+            "${groups[1]}(${groups[2]})${groups[3]}" // group 3 for preserving comments
         } else {
             it.value
         }
@@ -523,7 +536,7 @@ fun String.convertJetBrainsKotlin(): String {
     val newText = this.replace(fullLineExp) { isolatedLine ->
 
         // drop first "-" and remove last "
-        val substring = (removeExp.find(isolatedLine.value)?.value ?: "").drop(1).replace("\"","")
+        val substring = (removeExp.find(isolatedLine.value)?.value ?: "").drop(1).replace("\"", "")
 
         val splittedSubstring = substring.split(":")
 
@@ -638,7 +651,7 @@ fun writeToFile() {
 
     val newFilePath = if (fileIsAlreadyKts) file.path else "${file.path}.kts"
 
-    print("[${currentTimeFormatted()}] --- Saving to: \"$newFilePath\".. ")
+    println("[${currentTimeFormatted()}] --- Saving to: \"$newFilePath\".. ")
 
     val newFile = File(newFilePath)
     newFile.createNewFile()
@@ -649,5 +662,12 @@ fun writeToFile() {
 if (isInClipBoardMode) writeToClipboard() else writeToFile()
 
 
-println("Success!\n\n          Thanks for using this script!\n")
+println("Success!")
+
+if (showWarningGroovyVariables) {
+    println("\nWarning: We detected non-integer values for compileSdkVersion | minSdkVersion | targetSdkVersion\n- Groovy ext-variables are not supported, see buildSrc instead: https://proandroiddev.com/converting-your-android-gradle-scripts-to-kotlin-1172f1069880")
+}
+
+println("\n\n          Thanks for using this script!\n")
+
 exitProcess(0)
