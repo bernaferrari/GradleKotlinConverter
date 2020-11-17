@@ -4,7 +4,6 @@ import java.awt.Toolkit
 import java.awt.datatransfer.DataFlavor
 import java.awt.datatransfer.StringSelection
 import java.io.File
-import java.io.IOException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.system.exitProcess
@@ -87,8 +86,8 @@ val textToConvert = if (isInClipBoardMode) getClipboardContents() else readFromF
 // anything with ' ('1.0.0', 'kotlin-android', 'jitpack', etc)
 // becomes
 // anything with " ("1.0.0", "kotlin-android", "jitpack", etc)
+// We do not replace '"45"' --> "\"45\"" becaues we cannot safely match start and end quote with regExp's
 fun String.replaceApostrophes(): String = this.replace("'", "\"")
-
 
 // def appcompat = "1.0.0"
 // becomes
@@ -122,22 +121,61 @@ fun String.convertVariableDeclaration(): String {
     return this.replace(varDeclExp) {
         val (type, genericsType, id, value) = it.destructured
         if (type == "val") {
-            this
+            it.value
         } else {
             "val $id: ${type.convertType()}${genericsType.orEmpty()} = $value"
         }
     }
 }
 
-
-// [items...]
+// [appIcon: "@drawable/ic_launcher", appRoundIcon: "@null"]
 // becomes
-// listOf(items...)
+// mapOf(appIcon to "@drawable/ic_launcher", appRoundIcon to "@null"])
+fun String.convertMapExpression(): String {
+    val key = """\w+"""
+    val value = """[^,:\s\]]+"""
+    val keyValueGroup = """\s*$key:\s*$value\s*"""
+    val mapRegExp = """\[($keyValueGroup(?:,$keyValueGroup)*)\]""".toRegex(RegexOption.DOT_MATCHES_ALL)
+    val extractOneGroupRegExp = """^\s*($key):\s*($value)\s*(?:,(.*)|)$""".toRegex() // Matches key, value, the-rest after comma if any
+
+    fun extractAllMatches(matchesInKotlinCode: MutableList<String>, remainingString: String) { // Extract the first key=value, and recurse on the postfix
+        val innerMatch: MatchResult = extractOneGroupRegExp.find(remainingString) ?: return
+        val innerGroups = innerMatch.groupValues
+        matchesInKotlinCode += """"${innerGroups[1]}" to ${innerGroups[2]}"""
+        if (innerGroups[3].isNotEmpty()) {
+            val withoutComma = innerGroups[3]//.substring(1)
+            extractAllMatches(matchesInKotlinCode, withoutComma)
+        }
+    }
+
+    return this.replace(mapRegExp) { lineMatch ->
+        val matchesInKotlinCode = mutableListOf<String>()
+        extractAllMatches(matchesInKotlinCode, lineMatch.groupValues[1])
+        "mapOf(${matchesInKotlinCode.joinToString(", ")})"
+    }
+}
+
+// [1, 2]
+// becomes
+// listOf(1,2)
+// but keep probablyMyArrayLookup[42]
 fun String.convertArrayExpression(): String {
     val arrayExp = """\[([^\]]*?)\]""".toRegex(DOT_MATCHES_ALL)
 
     return this.replace(arrayExp) {
-        "listOf(${it.groupValues[1]})"
+        if (it.groupValues[1].toIntOrNull() != null) {
+            it.value // Its probably an array indexing, so keep original
+        } else {
+            "listOf(${it.groupValues[1]})"
+        }
+    }
+}
+
+fun String.convertVariantFilter(): String {
+    val arrayExp = """variantFilter\s*\{\s*(\w+\s*->)""".toRegex(DOT_MATCHES_ALL)
+
+    return this.replace(arrayExp) {
+        "variantFilter { // ${it.groupValues[1]} - TODO Manually replace '${it.groupValues[1]}' variable with this, and setIgnore(true) with ignore = true\n"
     }
 }
 
@@ -155,6 +193,17 @@ fun String.convertPlugins(): String {
     }
 }
 
+fun String.convertAndroidBuildConfigFunctions(): String {
+    val outerExp = """(buildConfigField|resValue|flavorDimensions|exclude|java.srcDir)\s+(".*")""".toRegex()
+    // packagingOptions > exclude
+    // sourceSets > name("") > java.srcDir
+
+    return this.replace(outerExp) {
+        val groups = it.groupValues
+        "${groups[1]}(${groups[2]})"
+    }
+}
+
 
 // NEED TO RUN BEFORE [convertDependencies].
 // compile ":epoxy-annotations"
@@ -164,7 +213,6 @@ fun String.convertCompileToImplementation(): String {
     val outerExp = "(compile|testCompile)(?!O).*\".*\"".toRegex()
 
     return this.replace(outerExp) {
-
         if ("testCompile" in it.value) {
             it.value.replace("testCompile", "testImplementation")
         } else {
@@ -228,6 +276,11 @@ fun String.convertSigningConfigBuildType(): String {
 // becomes
 // buildTypes { named("release") }
 fun String.convertBuildTypes(): String = this.convertNestedTypes("buildTypes", "named")
+
+// productFlavors { myName }
+// becomes
+// productFlavors { create("myName") }
+fun String.convertProductFlavors(): String = this.convertNestedTypes("productFlavors", "create")
 
 
 // sourceSets { test }
@@ -352,10 +405,11 @@ fun String.addParenthesisToId(): String {
 fun String.addEquals(): String {
 
     val signing = "keyAlias|keyPassword|storeFile|storePassword"
-    val other = "multiDexEnabled|correctErrorTypes"
+    val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension"
+    val databinding = "dataBinding|viewBinding"
     val defaultConfig = "applicationId|versionCode|versionName|testInstrumentationRunner"
 
-    val versionExp = "($defaultConfig|$signing|$other).*".toRegex()
+    val versionExp = "($defaultConfig|$signing|$other|$databinding).*".toRegex()
 
     return this.replace(versionExp) {
         val split = it.value.split(" ")
@@ -558,9 +612,9 @@ fun String.convertJetBrainsKotlin(): String {
 }
 
 
-// implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-// becomes
-// implementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
+// apply(plugin = "com.trello.victor")
+// becomes within plugin{}
+// id("com.trello.victor")
 fun String.convertPluginsIntoOneBlock(): String {
 
     // group plugin expressions. There can't be any space or tabs on the start of the line, else the regex will fail.
@@ -602,10 +656,13 @@ print("[${currentTimeFormatted()}] -- Starting conversion.. ")
 val convertedText = textToConvert
         .replaceApostrophes()
         .replaceDefWithVal()
+        .convertMapExpression() // Run before array
         .convertArrayExpression()
         .convertVariableDeclaration()
         .convertPlugins()
         .convertPluginsIntoOneBlock()
+        .convertVariantFilter()
+        .convertAndroidBuildConfigFunctions()
         .convertCompileToImplementation()
         .convertDependencies()
         .convertMaven()
@@ -617,6 +674,7 @@ val convertedText = textToConvert
         .convertInternalBlocks()
         .convertInclude()
         .convertBuildTypes()
+        .convertProductFlavors()
         .convertSourceSets()
         .convertSigningConfigs()
         .convertExcludeClasspath()
