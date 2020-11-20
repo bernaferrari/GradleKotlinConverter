@@ -155,6 +155,17 @@ fun String.convertMapExpression(): String {
     }
 }
 
+// Use new com.android.tools.build:gradle:4.1.0 syntax for manifestPlaceholders
+// manifestPlaceholders = mapOf("appIcon" to "@drawable/ic_launcher")
+// becomes
+// manifestPlaceholders.putAll(mapOf("appIcon" to "@drawable/ic_launcher"))
+fun String.convertManifestPlaceHoldersWithMap(): String {
+    val regExp = """manifestPlaceholders = (mapOf\([^\)]*\))""".toRegex(RegexOption.DOT_MATCHES_ALL)
+    return this.replace(regExp) {
+        "manifestPlaceholders.putAll(${it.groupValues[1]})"
+    }
+}
+
 // [1, 2]
 // becomes
 // listOf(1,2)
@@ -658,6 +669,7 @@ val convertedText = textToConvert
         .replaceDefWithVal()
         .convertMapExpression() // Run before array
         .convertArrayExpression()
+        .convertManifestPlaceHoldersWithMap() // Run after convertMapExpression
         .convertVariableDeclaration()
         .convertPlugins()
         .convertPluginsIntoOneBlock()
