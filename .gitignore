@@ -1,0 +1,33 @@
+#### IntelliJ
+#
+# See also https://github.com/github/gitignore/blob/master/Global/JetBrains.gitignore
+#
+# http://stackoverflow.com/questions/28147162/how-to-create-a-shared-editable-dictionary-for-intellij-idea-spellchecking
+# Exclude IntelliJ files, they will be recreated from the build files. But keep dictionaries to have less false positives in spellcheck inspection.
+/.idea/*
+!/.idea/dictionaries
+!/.idea/codeStyleSettings.xml
+!/.idea/codeStyleConfig.xml
+!/.idea/codeStyles
+!/.idea/encodings.xml
+
+# IntelliJ Idea .iml files change frequently, and IntelliJ can generated them on checkout (though it might complain a bit)
+*.iml
+*/*.iml
+
+# Android location of android-sdk
+/local.properties
+
+# Android Memory Dumps
+/captures
+
+# Gradle/IntelliJ build folder
+.gradle
+/build
+*/build
+
+#Mac Spam
+**/.DS_Store
+
+# Git merge files, also possible to not generate them with 'git config --global mergetool.keepBackup false'
+*.orig
