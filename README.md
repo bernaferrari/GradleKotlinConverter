@@ -10,7 +10,7 @@ Please see this tool as a helper, a first resource like Android Studio's Java co
 
 💻 Getting Started
 ---------------
-The script was written in Kotlin and depends on JVM (for File access). If you need to install Kotlin for command line access, [check here](https://kotlinlang.org/docs/tutorials/command-line.html) (`brew install kotlin`).
+The script was written in Kotlin and depends on JVM (for File access). If you need to install Kotlin for command line access, [check here](https://kotlinlang.org/docs/tutorials/command-line.html) (`brew install kotlin` or `scoop install kotlin -g` on windows with [Scoop](https://scoop.sh/)).
 
 ```
 File mode:
