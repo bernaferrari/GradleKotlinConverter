@@ -24,30 +24,6 @@ plugins {
 
 dependencies {
   ext {
-     plugins {
-    id("com.android.application")
-    id("kotlin-android")
-}
-apply(plugin = ("kotlin-kapt"))
-apply(plugin = ("kotlin-android-extensions"))
-
-dependencies {
-    classpath("com.android.tools.build:gradle:3.4.0-alpha10")
-    classpath(kotlin("gradle-plugin", version = "$KOTLIN_VERSION"))
-    classpath("com.bmuschko:gradle-nexus-plugin:2.3.1")
-    classpath("com.github.ben-manes:gradle-versions-plugin:0.20.0")
-}
-
-// this should not be converted to block, like the first ones
-apply(plugin = ("gms"))
-
-plugins {
-    id("io.gitlab.arturbosch.detekt") version "1.0.0.RC8"
-    id("io.gitlab.arturbosch.detekt")
-}
-
-dependencies {
-  ext {
      val test = "1.0.1"
   }
   val highdef = "1.1.0"
@@ -152,8 +128,8 @@ compileOptions {
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 
-dataBinding {
-    isEnabled = true
+dataBinding = {
+    enabled = true
 }
 
 tasks.register<Delete>("clean").configure {
