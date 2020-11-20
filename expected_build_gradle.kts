@@ -37,6 +37,7 @@ dependencies {
   testImplementation("com.randomDependency:1.0.0")
   compileOnly(group = "commons-io", name = "commons-io", version = "2.6")
   testCompileOnly(group = "org.apache.commons", name = "commons-math3", version = "3.6.1")
+  customFlavorImplementation "a.lib.com"
 }
 
 testImplementation(group = "junit", name = "junit", version = "4.12")
@@ -92,21 +93,22 @@ defaultConfig {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 }
 buildTypes {
-    named("release"){
+    named("release") {
+        multiDexEnabled = true
         isDebuggable = false
         isMinifyEnabled = true
         isShrinkResources = true
         setProguardFiles(listOf(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"))
         signingConfig = signingConfigs.getByName("release")
     }
-    named("debug"){
+    named("debug") {
         isDebuggable = true
         extra["alwaysUpdateBuildId"] = false
         extra["enableCrashlytics"] = false
     }
 }
 signingConfigs {
-    register("release"){
+    register("release") {
         storeFile = file(RELEASE_STORE_FILE)
         storePassword = RELEASE_STORE_PASSWORD
         keyAlias = RELEASE_KEY_ALIAS
@@ -120,6 +122,31 @@ android {
     lintOptions {
         isAbortOnError = false
     }
+    defaultConfig {
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("boolean", "BETA", "false")
+        manifestPlaceholders.putAll(mapOf("appIcon" to "@drawable/ic_launcher", "appRoundIcon" to "@null", "googleMapsKey" to "aNonKey"))
+        vectorDrawables.useSupportLibrary = true
+    }
+    flavorDimensions("brand", "releaseType")
+    productFlavors {
+        create("prod") {
+            dimension = "releaseType"
+            resValue("string", "myFieldName", "@string/app_name")
+            manifestPlaceholders.putAll(mapOf("appLabel" to "@string/activity_label", "deepLink" to "@string/deepLink"))
+        }
+    }
+    variantFilter { // variant -> - TODO Manually replace 'variant ->' variable with this, and setIgnore(true) with ignore = true
+
+        setIgnore(false)
+    }
+    dexOptions {
+        javaMaxHeapSize = "4g"
+        jumboMode = true
+    }
+    dataBinding {
+        isEnabled = true
+    }
 }
 compileOptions {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -128,8 +155,8 @@ compileOptions {
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 
-dataBinding = {
-    enabled = true
+dataBinding {
+    isEnabled = true
 }
 
 tasks.register<Delete>("clean").configure {

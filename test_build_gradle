@@ -33,6 +33,7 @@ dependencies {
   testCompile "com.randomDependency:1.0.0"
   compileOnly group: 'commons-io', name: 'commons-io', version: '2.6'
   testCompileOnly group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
+  customFlavorImplementation 'a.lib.com'
 }
 
 testImplementation(group: "junit", name: "junit", version: "4.12")
@@ -85,6 +86,7 @@ defaultConfig {
 }
 buildTypes {
     release {
+        multiDexEnabled true
         debuggable false
         minifyEnabled true
         shrinkResources true
@@ -111,6 +113,30 @@ kapt {
 android {
     lintOptions {
         abortOnError false
+    }
+    defaultConfig {
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField "boolean", "BETA", "false"
+        manifestPlaceholders = [appIcon: "@drawable/ic_launcher", appRoundIcon: "@null", googleMapsKey: "aNonKey"]
+        vectorDrawables.useSupportLibrary true
+    }
+    flavorDimensions 'brand', 'releaseType'
+    productFlavors {
+        prod {
+            dimension 'releaseType'
+            resValue "string", "myFieldName", "@string/app_name"
+            manifestPlaceholders = [appLabel: "@string/activity_label", deepLink: "@string/deepLink"]
+        }
+    }
+    variantFilter { variant ->
+        setIgnore(false)
+    }
+    dexOptions {
+        javaMaxHeapSize "4g"
+        jumboMode true
+    }
+    dataBinding {
+        enabled true
     }
 }
 compileOptions {

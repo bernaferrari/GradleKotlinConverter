@@ -310,7 +310,7 @@ fun String.convertNestedTypes(buildTypes: String, named: String): String {
     return this.getExpressionBlock("$buildTypes\\s*\\{".toRegex()) { substring ->
         substring.replace("\\S*\\s(?=\\{)".toRegex()) {
             val valueWithoutWhitespace = it.value.replace(" ", "")
-            "$named(\"$valueWithoutWhitespace\")"
+            "$named(\"$valueWithoutWhitespace\") "
         }
     }
 }
@@ -416,11 +416,12 @@ fun String.addParenthesisToId(): String {
 fun String.addEquals(): String {
 
     val signing = "keyAlias|keyPassword|storeFile|storePassword"
-    val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension"
+    val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary"
     val databinding = "dataBinding|viewBinding"
     val defaultConfig = "applicationId|versionCode|versionName|testInstrumentationRunner"
+    val negativeLookAhead = "(?!\\{)[^\\s]" // Don't want '{' as next word character
 
-    val versionExp = "($defaultConfig|$signing|$other|$databinding).*".toRegex()
+    val versionExp = """($defaultConfig|$signing|$other|$databinding)\s*${negativeLookAhead}.*""".toRegex()
 
     return this.replace(versionExp) {
         val split = it.value.split(" ")
@@ -737,6 +738,12 @@ println("Success!")
 if (showWarningGroovyVariables) {
     println("\nWarning: We detected non-integer values for compileSdkVersion | minSdkVersion | targetSdkVersion\n- Groovy ext-variables are not supported, see buildSrc instead: https://proandroiddev.com/converting-your-android-gradle-scripts-to-kotlin-1172f1069880")
 }
+
+println("""
+Info on manual work:
+  If you have custom flavor implemetation dependencies, use quotes like "myCustomFlavorImplementation"("a.lib")
+  --- see https://github.com/jnizet/gradle-kotlin-dsl-migration-guide/blob/master/README.adoc#custom-configurations""")
+
 
 println("\n\n          Thanks for using this script!\n")
 
