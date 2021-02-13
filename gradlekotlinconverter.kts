@@ -239,7 +239,7 @@ fun String.convertCompileToImplementation(): String {
 fun String.convertDependencies(): String {
 
     val testKeywords = "testImplementation|androidTestImplementation|debugImplementation|compileOnly|testCompileOnly|runtimeOnly|developmentOnly"
-    val gradleKeywords = "($testKeywords|implementation|api|annotationProcessor|classpath|kapt|check)".toRegex()
+    val gradleKeywords = "($testKeywords|implementation|api|annotationProcessor|classpath|kapt|kaptTest|kaptAndroidTest|check)".toRegex()
 
     // ignore cases like kapt { correctErrorTypes = true } and apply plugin: ('kotlin-kapt") but pass kapt("...")
     // ignore keyWord followed by a space and a { or a " and a )
