@@ -258,6 +258,8 @@ fun String.convertDependencies(): String {
     val validKeywords = "(?!$gradleKeywords\\s*(\\{|\"\\)|\\.))$gradleKeywords.*".toRegex()
 
     return this.replace(validKeywords) { substring ->
+        // By pass sth like: implementation(":epoxy-annotations") { ... }
+        if (substring.value.contains("""\)(\s*)\{""".toRegex())) return@replace substring.value
 
         // retrieve the comment [//this is a comment], if any
         val comment = "\\s*\\/\\/.*".toRegex().find(substring.value)?.value ?: ""
