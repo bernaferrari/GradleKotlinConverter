@@ -204,6 +204,18 @@ fun String.convertPlugins(): String {
     }
 }
 
+// apply from: "kotlin-android"
+// becomes
+// apply(from = "kotlin-android")
+fun String.convertPluginsFrom(): String {
+    val pluginsExp = """apply from: (\S+)""".toRegex()
+
+    return this.replace(pluginsExp) {
+        val (pluginId) = it.destructured
+        "apply(from = $pluginId)"
+    }
+}
+
 fun String.convertAndroidBuildConfigFunctions(): String {
     val outerExp = """(buildConfigField|resValue|flavorDimensions|exclude|java.srcDir)\s+(".*")""".toRegex()
     // packagingOptions > exclude
@@ -674,6 +686,7 @@ val convertedText = textToConvert
         .convertVariableDeclaration()
         .convertPlugins()
         .convertPluginsIntoOneBlock()
+        .convertPluginsFrom()
         .convertVariantFilter()
         .convertAndroidBuildConfigFunctions()
         .convertCompileToImplementation()
