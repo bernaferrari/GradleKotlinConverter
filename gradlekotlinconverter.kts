@@ -594,6 +594,29 @@ fun String.convertExcludeClasspath(): String {
     }
 }
 
+// exclude module: 'module-id'
+// becomes
+// exclude(module = "module-id")
+fun String.convertExcludeModules(): String {
+    val fullLineExp = """exclude module: (\S+)""".toRegex()
+
+    return this.replace(fullLineExp) {
+        val (moduleId) = it.destructured
+        "exclude(module = $moduleId)"
+    }
+}
+
+// exclude group: 'group-id'
+// becomes
+// exclude(group = "group-id")
+fun String.convertExcludeGroups(): String {
+    val fullLineExp = """exclude group: (\S+)""".toRegex()
+
+    return this.replace(fullLineExp) {
+        val (groupId) = it.destructured
+        "exclude(group = $groupId)"
+    }
+}
 
 // classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 // becomes
@@ -704,6 +727,8 @@ val convertedText = textToConvert
         .convertSourceSets()
         .convertSigningConfigs()
         .convertExcludeClasspath()
+        .convertExcludeModules()
+        .convertExcludeGroups()
         .convertJetBrainsKotlin()
         .convertSigningConfigBuildType()
         .convertExtToExtra()
