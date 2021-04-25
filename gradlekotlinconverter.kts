@@ -280,6 +280,15 @@ fun String.convertDependencies(): String {
     }
 }
 
+// fileTree(dir: "libs", include: ["*.jar"])
+// becomes
+// fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar")))
+fun String.convertFileTree(): String {
+    val fileTreeString = """fileTree\(dir(\s*):(\s*)"libs"(\s*),(\s*)include(\s*):(\s*)\["\*.jar"\]\)""".toRegex()
+
+    return this.replace(fileTreeString, """fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar")))""")
+}
+
 
 // signingConfig signingConfigs.release
 // becomes
@@ -559,6 +568,8 @@ fun String.convertInclude(): String {
     val includeExp = "include$expressionBase".toRegex()
 
     return this.replace(includeExp) { includeBlock ->
+        if(includeBlock.value.contains("include\"")) return@replace includeBlock.value // exclude: "include" to
+
         // avoid cases where some lines at the start/end are blank
         val multiLine = includeBlock.value.split('\n').count { it.isNotBlank() } > 1
 
@@ -704,6 +715,7 @@ val convertedText = textToConvert
         .replaceApostrophes()
         .replaceDefWithVal()
         .convertMapExpression() // Run before array
+        .convertFileTree()
         .convertArrayExpression()
         .convertManifestPlaceHoldersWithMap() // Run after convertMapExpression
         .convertVariableDeclaration()
