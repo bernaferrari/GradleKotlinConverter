@@ -439,13 +439,14 @@ fun String.addParenthesisToId(): String {
 // versionCode = 4
 fun String.addEquals(): String {
 
+    val compileSdk = "compileSdk"
     val signing = "keyAlias|keyPassword|storeFile|storePassword"
     val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary"
     val databinding = "dataBinding|viewBinding"
-    val defaultConfig = "applicationId|versionCode|versionName|testInstrumentationRunner"
+    val defaultConfig = "applicationId|minSdk|targetSdk|versionCode|versionName|testInstrumentationRunner"
     val negativeLookAhead = "(?!\\{)[^\\s]" // Don't want '{' as next word character
 
-    val versionExp = """($defaultConfig|$signing|$other|$databinding)\s*${negativeLookAhead}.*""".toRegex()
+    val versionExp = """($compileSdk|$defaultConfig|$signing|$other|$databinding)\s*${negativeLookAhead}.*""".toRegex()
 
     return this.replace(versionExp) {
         val split = it.value.split(" ")
