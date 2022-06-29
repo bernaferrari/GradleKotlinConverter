@@ -46,6 +46,7 @@ if (!args.contains("skipintro")) {
     println(intro)
 }
 
+
 var isInClipBoardMode = args.isEmpty()
 
 val input = if (!isInClipBoardMode) args.first() else ""
@@ -420,15 +421,15 @@ fun String.addParentheses(): String {
 // becomes
 // id("io.gitlab.arturbosch.detekt") version "1.0.0.RC8"
 fun String.addParenthesisToId(): String {
-
+    
     // this will only catch id "..." version ..., should skip id("...")
     // should get the id "..."
-    val idExp = "id\\s*\".*?\"".toRegex()
+    val idExp = "(id)\\s*\"(.*?)\"".toRegex()
 
     return this.replace(idExp) {
         // remove the "id " before the real id
-        val idValue = it.value.replace("id\\s*".toRegex(), "")
-        "id($idValue)"
+        val (id, value) = it.destructured
+        """$id("$value")"""
     }
 }
 
@@ -438,13 +439,14 @@ fun String.addParenthesisToId(): String {
 // versionCode = 4
 fun String.addEquals(): String {
 
+    val compileSdk = "compileSdk"
     val signing = "keyAlias|keyPassword|storeFile|storePassword"
     val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary"
     val databinding = "dataBinding|viewBinding"
-    val defaultConfig = "applicationId|versionCode|versionName|testInstrumentationRunner"
+    val defaultConfig = "applicationId|minSdk|targetSdk|versionCode|versionName|testInstrumentationRunner"
     val negativeLookAhead = "(?!\\{)[^\\s]" // Don't want '{' as next word character
 
-    val versionExp = """($defaultConfig|$signing|$other|$databinding)\s*${negativeLookAhead}.*""".toRegex()
+    val versionExp = """($compileSdk|$defaultConfig|$signing|$other|$databinding)\s*${negativeLookAhead}.*""".toRegex()
 
     return this.replace(versionExp) {
         val split = it.value.split(" ")
