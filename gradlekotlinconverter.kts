@@ -441,7 +441,7 @@ fun String.addEquals(): String {
 
     val compileSdk = "compileSdk"
     val signing = "keyAlias|keyPassword|storeFile|storePassword"
-    val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary|kotlinCompilerExtensionVersion"
+    val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary|kotlinCompilerExtensionVersion|coreLibraryDesugaringEnabled"
     val databinding = "dataBinding|viewBinding"
     val defaultConfig = "applicationId|minSdk|targetSdk|versionCode|versionName|testInstrumentationRunner|namespace"
     val negativeLookAhead = "(?!\\{)[^\\s]" // Don't want '{' as next word character
@@ -714,6 +714,13 @@ fun String.replaceColonWithEquals(): String {
     }
 }
 
+// coreLibraryDesugaringEnabled = true
+// becomes
+// isCoreLibraryDesugaringEnabled = true
+fun String.replaceCoreLibraryDesugaringEnabled(): String = this.replace(
+    oldValue = "coreLibraryDesugaringEnabled", newValue = "isCoreLibraryDesugaringEnabled"
+)
+
 print("[${currentTimeFormatted()}] -- Starting conversion.. ")
 
 val convertedText = textToConvert
@@ -751,6 +758,7 @@ val convertedText = textToConvert
         .convertExtToExtra()
         .addParenthesisToId()
         .replaceColonWithEquals()
+        .replaceCoreLibraryDesugaringEnabled()
 
 println("Success!")
 
