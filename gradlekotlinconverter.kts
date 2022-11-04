@@ -444,7 +444,7 @@ fun String.addEquals(): String {
     val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary|kotlinCompilerExtensionVersion"
     val databinding = "dataBinding|viewBinding"
     val defaultConfig = "applicationId|minSdk|targetSdk|versionCode|versionName|testInstrumentationRunner|namespace"
-    val negativeLookAhead = "(?!\\{)[^\\s]" // Don't want '{' as next word character
+    val negativeLookAhead = "(?!\\{)[^Version\\s]" // Don't want '{' as next word character
 
     val versionExp = """($compileSdk|$defaultConfig|$signing|$other|$databinding)\s*${negativeLookAhead}.*""".toRegex()
 
