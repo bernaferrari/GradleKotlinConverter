@@ -443,7 +443,7 @@ fun String.addEquals(): String {
     val signing = "keyAlias|keyPassword|storeFile|storePassword"
     val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary"
     val databinding = "dataBinding|viewBinding"
-    val defaultConfig = "applicationId|minSdk|targetSdk|versionCode|versionName|testInstrumentationRunner"
+    val defaultConfig = "applicationId|minSdk|targetSdk|versionCode|versionName|testInstrumentationRunner|namespace"
     val negativeLookAhead = "(?!\\{)[^\\s]" // Don't want '{' as next word character
 
     val versionExp = """($compileSdk|$defaultConfig|$signing|$other|$databinding)\s*${negativeLookAhead}.*""".toRegex()
