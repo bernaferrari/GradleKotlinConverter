@@ -119,6 +119,7 @@ kapt {
     correctErrorTypes = true
 }
 android {
+    namespace = "com.bernaferrari.sdkmonitor"
     lintOptions {
         isAbortOnError = false
     }
@@ -147,8 +148,12 @@ android {
     dataBinding {
         isEnabled = true
     }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.3.2"
+    }
 }
 compileOptions {
+    isCoreLibraryDesugaringEnabled = true
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
 }
