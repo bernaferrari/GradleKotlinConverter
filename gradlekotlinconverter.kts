@@ -441,7 +441,7 @@ fun String.addEquals(): String {
 
     val compileSdk = "compileSdk"
     val signing = "keyAlias|keyPassword|storeFile|storePassword"
-    val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary|kotlinCompilerExtensionVersion|coreLibraryDesugaringEnabled"
+    val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary|kotlinCompilerExtensionVersion|isCoreLibraryDesugaringEnabled"
     val databinding = "dataBinding|viewBinding"
     val defaultConfig = "applicationId|minSdk|targetSdk|versionCode|versionName|testInstrumentationRunner|namespace"
     val negativeLookAhead = "(?!\\{)[^Version\\s]" // Don't want '{' as next word character
@@ -737,6 +737,7 @@ val convertedText = textToConvert
         .convertVariantFilter()
         .convertAndroidBuildConfigFunctions()
         .convertCompileToImplementation()
+        .replaceCoreLibraryDesugaringEnabled()
         .convertDependencies()
         .convertMaven()
         .addParentheses()
@@ -758,7 +759,7 @@ val convertedText = textToConvert
         .convertExtToExtra()
         .addParenthesisToId()
         .replaceColonWithEquals()
-        .replaceCoreLibraryDesugaringEnabled()
+
 
 println("Success!")
 
