@@ -721,6 +721,20 @@ fun String.replaceCoreLibraryDesugaringEnabled(): String = this.replace(
     oldValue = "coreLibraryDesugaringEnabled", newValue = "isCoreLibraryDesugaringEnabled"
 )
 
+// compose true
+// dataBinding false
+// becomes
+// compose = true
+// dataBinding = false
+fun String.convertBuildFeatures(): String {
+    val buildFeatures = "(dataBinding|viewBinding|aidl|buildConfig|prefab|renderScript|resValues|shaders|compose)"
+    val state = "(false|true)"
+
+    return this.replace("$buildFeatures\\s$state".toRegex()) { result ->
+    result.value.replace(" ", " = ")
+    }
+}
+
 print("[${currentTimeFormatted()}] -- Starting conversion.. ")
 
 val convertedText = textToConvert
@@ -759,6 +773,7 @@ val convertedText = textToConvert
         .convertExtToExtra()
         .addParenthesisToId()
         .replaceColonWithEquals()
+        .convertBuildFeatures()
 
 
 println("Success!")
