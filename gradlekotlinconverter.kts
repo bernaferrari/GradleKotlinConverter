@@ -403,7 +403,7 @@ var showWarningGroovyVariables = false
 // compileSdkVersion(28)
 fun String.addParentheses(): String {
 
-    val sdkExp = "(compileSdkVersion|minSdkVersion|targetSdkVersion)\\s*([^\\s]*)(.*)".toRegex() // include any word, as it may be a variable
+    val sdkExp = "(compileSdkVersion|minSdkVersion|targetSdkVersion|consumerProguardFiles)\\s*([^\\s]*)(.*)".toRegex() // include any word, as it may be a variable
 
     return this.replace(sdkExp) {
         val groups = it.groupValues
