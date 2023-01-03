@@ -95,6 +95,7 @@ defaultConfig {
     versionCode = 4
     versionName = "0.4"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    consumerProguardFiles("consumer-rules.pro")
 }
 buildTypes {
     named("release") {
