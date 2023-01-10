@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: "kotlin-android"
+apply plugin: "idea"
 apply plugin: ('kotlin-kapt')
 apply plugin: ("kotlin-android-extensions")
 
@@ -16,6 +17,7 @@ apply plugin: ("gms")
 plugins {
     id "io.gitlab.arturbosch.detekt" version "1.0.0.RC8"
     id "io.gitlab.arturbosch.detekt"
+    id "idea"
 }
 
 dependencies {

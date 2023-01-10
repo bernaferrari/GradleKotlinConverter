@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.config.KotlinCompilerVersion
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    id("idea")
 }
 apply(plugin = ("kotlin-kapt"))
 apply(plugin = ("kotlin-android-extensions"))
@@ -20,6 +21,7 @@ apply(plugin = ("gms"))
 plugins {
     id("io.gitlab.arturbosch.detekt") version "1.0.0.RC8"
     id("io.gitlab.arturbosch.detekt")
+    id("idea")
 }
 
 dependencies {
