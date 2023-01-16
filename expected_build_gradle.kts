@@ -54,6 +54,8 @@ configurations.classpath {
 
 implementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
 implementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
+releaseImplementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
+debugImplementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
 
 classpath(kotlin("gradle-plugin", version = "$kotlin_version"))
 classpath(kotlin("gradle-plugin", version = "1.3.20"))
