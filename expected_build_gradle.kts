@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.config.KotlinCompilerVersion
-
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -52,10 +50,10 @@ configurations.classpath {
     exclude(group = "com.android.tools.external.lombok")
 }
 
-implementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
-implementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
-releaseImplementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
-debugImplementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
+implementation(kotlin("stdlib"))
+implementation(kotlin("stdlib"))
+releaseImplementation(kotlin("stdlib"))
+debugImplementation(kotlin("stdlib"))
 
 classpath(kotlin("gradle-plugin", version = "$kotlin_version"))
 classpath(kotlin("gradle-plugin", version = "1.3.20"))
