@@ -122,7 +122,7 @@ The GIF showcases how simple it is:
     <tr>
         <td>Kt dependencies (2/3)</td>
         <td>"org.jetbrains.kotlin:kotlin-stdlib:$kt_v"</td>
-        <td>kotlin("stdlib", KotlinCompilerVersion.VERSION)</td>
+        <td>kotlin("stdlib")</td>
     </tr>
     <tr>
         <td>Kt dependencies (3/3)</td>

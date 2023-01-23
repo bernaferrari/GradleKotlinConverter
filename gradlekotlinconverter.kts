@@ -641,7 +641,7 @@ fun String.convertExcludeGroups(): String {
 //
 // implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 // becomes
-// implementation(kotlin("stdlib", KotlinCompilerVersion.VERSION))
+// implementation(kotlin("stdlib"))
 fun String.convertJetBrainsKotlin(): String {
 
     // if string is implementation("..."), this will extract only the ...
@@ -660,7 +660,7 @@ fun String.convertJetBrainsKotlin(): String {
 
         if ("stdlib" in substring) {
             shouldImportKotlinCompiler = true
-            "kotlin(\"stdlib\", KotlinCompilerVersion.VERSION)"
+            "kotlin(\"stdlib\")"
         } else if (splittedSubstring.size == 2) {
             "kotlin(\"${splittedSubstring[0]}\", version = \"${splittedSubstring[1]}\")"
         } else {
@@ -668,11 +668,7 @@ fun String.convertJetBrainsKotlin(): String {
         }
     }
 
-    return if (shouldImportKotlinCompiler) {
-        "import org.jetbrains.kotlin.config.KotlinCompilerVersion\n\n" + newText
-    } else {
-        newText
-    }
+    return newText
 }
 
 
