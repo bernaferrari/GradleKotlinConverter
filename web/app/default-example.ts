@@ -24,9 +24,11 @@ plugins {
 
 dependencies {
   ext {
-     plugins {
-    id("com.android.application")
-    id("kotlin-android")
+    plugins {
+      id("com.android.application")
+      id("kotlin-android")
+    }
+  }
 }
 apply(plugin = ("kotlin-kapt"))
 apply(plugin = ("kotlin-android-extensions"))
