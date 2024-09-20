@@ -5,7 +5,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Card, CardContent } from "@/components/ui/card"
-import { Icons } from "@/components/icons"
 
 import Client from "./code-editors"
 
