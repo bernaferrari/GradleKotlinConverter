@@ -1,39 +1,47 @@
 ![Image of GradleKotlinConverter](logo.png)
 
-Gradle Kotlin DSL converter
-=================
+# Gradle Kotlin DSL Converter
 
-Welcome! After a lot of pain trying to migrate from Gradle's Groovy to Kotlin DSL on Android Studio, I developed this tool to solve most migration issues and reduce the amount of work you need in order to make things ready.
+A powerful tool to simplify the migration from Gradle's Groovy DSL to Kotlin DSL for Android projects.
 
-Please see this tool as a helper, a first resource like Android Studio's Java converter to Kotlin: it won't make a _perfect_ conversion, but it helps a lot in reducing the time you would spend on repetitive tasks.
+[![Image of website](web-screenshot.png)](https://gradle-kotlin-converter.vercel.app/)
 
+Visit https://gradle-kotlin-converter.vercel.app/ to use the converter.
 
-💻 Getting Started
----------------
-The script was written in Kotlin and depends on JVM (for File access). If you need to install Kotlin for command line access, [check here](https://kotlinlang.org/docs/tutorials/command-line.html) (`brew install kotlin` or `scoop install kotlin -g` on windows with [Scoop](https://scoop.sh/)).
+## Overview
 
-```
-File mode:
-$ ./gradlekotlinconverter.kts build.gradle
-$ kotlinc -script gradlekotlinconverter.kts build.gradle
+The Gradle Kotlin DSL Converter is designed to streamline the process of transitioning from Gradle's Groovy DSL to Kotlin DSL in Android Studio. This tool automates many of the repetitive tasks involved in the migration, significantly reducing the time and effort required to update your build scripts.
 
-Clipboard mode:
-$ ./gradlekotlinconverter.kts
-```
+While it may not produce a perfect conversion in all cases, it serves as an invaluable first step in the migration process, similar to Android Studio's Java to Kotlin converter.
 
-**Motivation**: on my own apps, I've used apostrophes \' instead of quotation marks \" since forever, so it wasn't fun when I discovered I would need to modify more than 100 lines of code to make Kotlin DSL work. Besides this, the tool also solves a few common issues that might appear, like the ```task clean(type: Delete)``` that becomes a completely different thing.
+## Features
 
+- Converts Groovy-style Gradle scripts to Kotlin DSL format
+- Handles common syntax differences and idiomatic changes
+- Supports both file-based and clipboard-based conversion
+- Addresses numerous edge cases and common migration challenges
 
-📋 Clipboard mode
----------------
-Sometimes you just want to copy and paste. Just copy whatever you want, run the script, then paste on your IDE.
-The GIF showcases how simple it is:
+## Getting Started
 
- ![GIF](/clipboard_mode.gif?raw=true)
+### Web Interface
 
+Visit our [web-based converter](https://gradle-kotlin-converter.vercel.app/) for an easy-to-use interface that doesn't require any local setup.
 
-😱 Things it can do
----------------
+## Conversion Capabilities
+
+The converter handles a wide range of Gradle script elements, including:
+
+- String delimiter conversion (apostrophes to quotation marks)
+- Variable declaration updates (`def` to `val`)
+- Plugin application syntax
+- Dependency declaration format
+- Repository and Maven configurations
+- SDK version and build type declarations
+- ProGuard file configurations
+- Kotlin-specific dependency declarations
+- And more:
+
+---
 
 <table>
     <th>Description</th>
@@ -165,30 +173,29 @@ When applying on `build.gradle`, the script will create, for example, `build.gra
 When applying on a file that already ends in `.kts`, the script will overrite the file.
 In that case, please make sure you are using git or have a backup, in case things turn out wrong.
 
-😨 Things it still can't do
--------
+## Things it still can't do
+
 - If you find anything, just tell me.
 
-Issue Tracking
--------
+## Issue Tracking
+
 Found a bug? Have an idea for an improvement? Feel free to [add an issue](../../issues).
 
-License
--------
+## License
 
 Copyright 2018 Bernardo Ferrari.
 
 Licensed to the Apache Software Foundation (ASF) under one or more contributor
-license agreements.  See the NOTICE file distributed with this work for
-additional information regarding copyright ownership.  The ASF licenses this
+license agreements. See the NOTICE file distributed with this work for
+additional information regarding copyright ownership. The ASF licenses this
 file to you under the Apache License, Version 2.0 (the "License"); you may not
-use this file except in compliance with the License.  You may obtain a copy of
+use this file except in compliance with the License. You may obtain a copy of
 the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 License for the specific language governing permissions and limitations under
 the License.
