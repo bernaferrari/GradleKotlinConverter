@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from "react"
 import Editor, { OnMount } from "@monaco-editor/react"
 import { TooltipProvider } from "@radix-ui/react-tooltip"
+import { AnimationControls, motion, useAnimation } from "framer-motion"
 import {
   ArrowDown,
   ArrowRight,
   CheckIcon,
   ClipboardIcon,
   ClipboardPasteIcon,
+  CopyIcon,
   RotateCcwIcon,
 } from "lucide-react"
 import * as monaco from "monaco-editor"
@@ -158,13 +160,20 @@ export default function CodeEditors() {
             />
           </div>
           <div className="flex items-center justify-center h-full">
-            <ArrowRight className="h-6 w-6 text-purple-500 hidden sm:flex" />
-            <ArrowDown className="h-6 w-6 text-purple-500 sm:hidden" />
+            <AnimatedArrowRight
+              className="h-6 w-6 text-purple-500 hidden sm:flex"
+              gradleInput={gradleInput}
+            />
+            <AnimatedArrowDown
+              className="h-6 w-6 text-purple-500 sm:hidden"
+              gradleInput={gradleInput}
+            />
           </div>
           <div className="space-y-2">
             <div className="font-medium flex gap-2 items-center min-h-8">
               <KotlinIcon />
-              <span className="text-muted-foreground">Output:</span> Kotlin KTS
+              <span className="text-muted-foreground">Output:</span> Kotlin DSL
+              (KTS)
             </div>
             <div className="relative overflow-hidden">
               <div>
@@ -192,27 +201,34 @@ export default function CodeEditors() {
                         onClick={() => handleClick()}
                         variant={"outline"}
                         className={cn(
-                          "w-8 h-8 p-2 transition-all ease-in-out relative",
+                          "w-auto h-8 p-2 transition-all ease-in-out relative flex gap-2",
                           copyButtonClicked &&
                             "bg-primary/10 hover:bg-primary/10 border-primary/20"
                         )}
                       >
-                        <CheckIcon
-                          size={16}
-                          className={cn(
-                            "absolute self-center opacity-0 scale-0 transition-all",
-                            copyButtonClicked &&
-                              "opacity-100 scale-100 text-primary"
-                          )}
-                        />
+                        <div className="w-4 h-4 relative flex items-center justify-center">
+                          <CheckIcon
+                            size={16}
+                            className={cn(
+                              "absolute self-center opacity-0 scale-0 transition-all",
+                              copyButtonClicked &&
+                                "opacity-100 scale-100 text-primary"
+                            )}
+                          />
+                          <CopyIcon
+                            size={16}
+                            className={cn(
+                              "absolute self-center opacity-100 scale-100 transition-all",
+                              copyButtonClicked && "opacity-0 scale-0"
+                            )}
+                          />
+                        </div>
 
-                        <ClipboardIcon
-                          size={16}
-                          className={cn(
-                            "absolute self-center opacity-100 scale-100 transition-all",
-                            copyButtonClicked && "opacity-0 scale-0"
-                          )}
-                        />
+                        {copyButtonClicked ? (
+                          <span>Copied!</span>
+                        ) : (
+                          <span>Copy code</span>
+                        )}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Copy</TooltipContent>
@@ -295,5 +311,54 @@ const KotlinIcon = () => {
         </linearGradient>
       </defs>
     </svg>
+  )
+}
+
+interface AnimatedArrowProps {
+  className?: string
+  gradleInput: string
+}
+
+const AnimatedArrowRight: React.FC<AnimatedArrowProps> = ({
+  className,
+  gradleInput,
+}) => {
+  const controls: AnimationControls = useAnimation()
+
+  useEffect(() => {
+    const animateArrow = async (): Promise<void> => {
+      await controls.start({ x: 5, transition: { duration: 0.2 } })
+      await controls.start({ x: 0, transition: { duration: 0.2 } })
+    }
+
+    animateArrow()
+  }, [gradleInput, controls])
+
+  return (
+    <motion.div animate={controls}>
+      <ArrowRight className={className} />
+    </motion.div>
+  )
+}
+
+const AnimatedArrowDown: React.FC<AnimatedArrowProps> = ({
+  className,
+  gradleInput,
+}) => {
+  const controls: AnimationControls = useAnimation()
+
+  useEffect(() => {
+    const animateArrow = async (): Promise<void> => {
+      await controls.start({ y: 5, transition: { duration: 0.2 } })
+      await controls.start({ y: 0, transition: { duration: 0.2 } })
+    }
+
+    animateArrow()
+  }, [gradleInput, controls])
+
+  return (
+    <motion.div animate={controls}>
+      <ArrowDown className={className} />
+    </motion.div>
   )
 }

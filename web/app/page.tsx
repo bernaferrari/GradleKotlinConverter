@@ -21,10 +21,10 @@ export default function Component() {
           <CardContent className="p-6">
             <h2 className="mb-4 text-2xl font-semibold">How It Works</h2>
             <p className="mb-4">
-              This tool converts Gradle build scripts from Groovy to Kotlin KTS
-              (Kotlin Script) format. It's designed to assist developers in
-              modernizing their Android projects by facilitating the migration
-              from Groovy-based Gradle files to the more type-safe and
+              This tool converts Gradle build scripts from Groovy to Kotlin DSL
+              (KTS - Kotlin Script) format. It's designed to assist developers
+              in modernizing their Android projects by facilitating the
+              migration from Groovy-based Gradle files to the more type-safe and
               IDE-friendly Kotlin DSL.
             </p>
             <ol className="mb-4 list-inside list-decimal space-y-2">
@@ -69,7 +69,7 @@ export default function Component() {
             <h2 className="mb-4 text-2xl font-semibold">FAQ</h2>
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="item-1">
-                <AccordionTrigger>
+                <AccordionTrigger className="text-start">
                   How can I troubleshoot conversion issues?
                 </AccordionTrigger>
                 <AccordionContent>
@@ -107,7 +107,7 @@ export default function Component() {
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-2">
-                <AccordionTrigger>
+                <AccordionTrigger className="text-start">
                   What are the limitations of this converter?
                 </AccordionTrigger>
                 <AccordionContent>
@@ -136,7 +136,7 @@ export default function Component() {
                 </AccordionContent>
               </AccordionItem>
               <AccordionItem value="item-3">
-                <AccordionTrigger>
+                <AccordionTrigger className="text-start">
                   How can I contribute to improving this tool?
                 </AccordionTrigger>
                 <AccordionContent>
@@ -160,29 +160,6 @@ export default function Component() {
                   </ul>
                   Your input is valuable in making this tool more robust and
                   useful for the entire Android development community.
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="item-4">
-                <AccordionTrigger>
-                  Wait, you are not using Kotlin in this website?
-                </AccordionTrigger>
-                <AccordionContent>
-                  From 2019 to 2024, the script was developed in Kotlin and was
-                  accessible exclusively through a command-line interface. While
-                  Kotlin served its purpose well, I felt that making the tool
-                  available on the web would enhance its usability and reach. To
-                  achieve this, I created a web version using modern tools like
-                  Shadcn/UI, Next.js, Tailwind, and TypeScript, which I found to
-                  be highly effective for web development. Although Kotlin is a
-                  language I greatly appreciate, its ecosystem for web
-                  development still presents certain challenges. For example, it
-                  requires the use of a custom React wrapper, and its WASM
-                  (WebAssembly) capabilities work best in Kotlin-centric
-                  projects. After considering these factors, I decided to
-                  rebuild the script in TypeScript while developing the
-                  front-end. I believe that TypeScript is a more fitting choice
-                  for web applications, given its robust tooling and seamless
-                  integration with popular frameworks.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
