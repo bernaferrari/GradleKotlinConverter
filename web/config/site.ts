@@ -1,8 +1,8 @@
 export type SiteConfig = typeof siteConfig
 
 export const siteConfig = {
-  name: "Gradle to Kotlin KTS Converter",
-  description: "Convert from Groovy to Kotlin DSL. Open Source.",
+  name: "Gradle to KTS Converter",
+  description: "Convert from Groovy to Kotlin DSL (KTS). Open Source.",
   mainNav: [],
   links: {
     twitter: "https://twitter.com/bernaferrari",

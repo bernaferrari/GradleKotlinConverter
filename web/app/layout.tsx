@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   openGraph: {
-    images: "/public/opengraph-image.png",
+    images: "/opengraph-image.png",
   },
   icons: {
     icon: "/favicon.ico",
