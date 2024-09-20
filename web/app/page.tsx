@@ -7,6 +7,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 
 import Client from "./code-editors"
+import { CSPostHogProvider } from "./providers"
 
 export default function Component() {
   return (
@@ -14,7 +15,9 @@ export default function Component() {
       className={`flex min-h-screen flex-col transition-colors duration-300`}
     >
       <main className="flex grow flex-col items-center justify-start space-y-8 p-4 sm:p-6 lg:p-8">
-        <Client />
+        <CSPostHogProvider>
+          <Client />
+        </CSPostHogProvider>
 
         <Card className="w-full max-w-5xl bg-card/50">
           <CardContent className="p-6">
