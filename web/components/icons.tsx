@@ -50,9 +50,9 @@ export const Icons = {
           y2="737.749"
           gradientUnits="userSpaceOnUse"
         >
-          <stop offset="0.003" stop-color="#E44857" />
-          <stop offset="0.469" stop-color="#C711E1" />
-          <stop offset="1" stop-color="#7F52FF" />
+          <stop offset="0.003" stopColor="#E44857" />
+          <stop offset="0.469" stopColor="#C711E1" />
+          <stop offset="1" stopColor="#7F52FF" />
         </linearGradient>
       </defs>
     </svg>

@@ -100,9 +100,9 @@ export default function CodeEditors() {
   }
 
   return (
-    <Card className="w-full max-w-5xl bg-card/50">
+    <Card className="w-full max-w-5xl bg-card/50 p-0">
       <CardContent className="p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr),auto,minmax(0,1fr)] gap-4 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-4 items-start">
           <div className="space-y-2">
             <div className="flex w-full justify-between items-center gap-2 min-h-8">
               <div className="font-medium flex items-center gap-2">
@@ -184,6 +184,10 @@ export default function CodeEditors() {
                   value={kotlinOutput}
                   onMount={handleKotlinEditorDidMount}
                   options={{
+                    scrollbar: {
+                      vertical: "visible",
+                      horizontal: "visible",
+                    },
                     minimap: { enabled: false },
                     lineNumbers: "on",
                     scrollBeyondLastLine: false,
@@ -193,7 +197,7 @@ export default function CodeEditors() {
                 />
               </div>
 
-              <div className="absolute bottom-2 right-6">
+              <div className="absolute bottom-6 right-6">
                 <TooltipProvider>
                   <Tooltip delayDuration={0}>
                     <TooltipTrigger asChild>
@@ -201,9 +205,8 @@ export default function CodeEditors() {
                         onClick={() => handleClick()}
                         variant={"outline"}
                         className={cn(
-                          "w-auto h-8 p-2 transition-all ease-in-out relative flex gap-2",
-                          copyButtonClicked &&
-                            "bg-primary/10 hover:bg-primary/10 border-primary/20"
+                          "w-auto h-8 p-2 bg-background/90 dark:bg-background/90 hover:bg-background dark:hover:bg-background transition-all ease-in-out relative flex gap-2",
+                          copyButtonClicked && "border-primary/20"
                         )}
                       >
                         <div className="w-4 h-4 relative flex items-center justify-center">
