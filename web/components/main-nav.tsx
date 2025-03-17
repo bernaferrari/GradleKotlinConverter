@@ -19,7 +19,7 @@ export function MainNav({ items }: MainNavProps) {
           {siteConfig.name}
         </span>
         <span className="font-bold overflow-hidden truncate flex sm:hidden">
-          Gradle to KTS
+          Gradle to Kotlin
         </span>
       </Link>
       {items?.length ? (

@@ -8,7 +8,6 @@ import {
   ArrowDown,
   ArrowRight,
   CheckIcon,
-  ClipboardIcon,
   ClipboardPasteIcon,
   CopyIcon,
   RotateCcwIcon,
@@ -62,7 +61,7 @@ export default function CodeEditors() {
       if (gradleInput.trim() === "") {
         setKotlinOutput("")
         setConversionSuccess(false)
-        return
+        return null
       }
       try {
         const converted = converter.convert(gradleInput)
@@ -170,11 +169,45 @@ export default function CodeEditors() {
             />
           </div>
           <div className="space-y-2">
-            <div className="font-medium flex gap-2 items-center min-h-8">
-              <KotlinIcon />
-              <span className="text-muted-foreground">Output:</span> Kotlin DSL
-              (KTS)
+            <div className="flex w-full justify-between items-center gap-2 min-h-8">
+              <div className="font-medium flex gap-2 items-center min-h-8">
+                <KotlinIcon />
+                <span className="text-muted-foreground">Output:</span> Kotlin
+                DSL (KTS)
+              </div>
+
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => handleClick()}
+                      variant="outline"
+                      className="w-8 h-8"
+                    >
+                      <div className="w-4 h-4 relative flex items-center justify-center">
+                        <CheckIcon
+                          size={16}
+                          className={cn(
+                            "absolute self-center opacity-0 scale-0 transition-all",
+                            copyButtonClicked &&
+                              "opacity-100 scale-100 text-primary"
+                          )}
+                        />
+                        <CopyIcon
+                          size={16}
+                          className={cn(
+                            "absolute self-center opacity-100 scale-100 transition-all",
+                            copyButtonClicked && "opacity-0 scale-0"
+                          )}
+                        />
+                      </div>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Copy</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
+
             <div className="relative overflow-hidden">
               <div>
                 <Editor
@@ -197,60 +230,13 @@ export default function CodeEditors() {
                 />
               </div>
 
-              <div className="absolute bottom-6 right-6">
-                <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={() => handleClick()}
-                        variant={"outline"}
-                        className={cn(
-                          "w-auto h-8 p-2 bg-background/90 dark:bg-background/90 hover:bg-background dark:hover:bg-background transition-all ease-in-out relative flex gap-2",
-                          copyButtonClicked && "border-primary/20"
-                        )}
-                      >
-                        <div className="w-4 h-4 relative flex items-center justify-center">
-                          <CheckIcon
-                            size={16}
-                            className={cn(
-                              "absolute self-center opacity-0 scale-0 transition-all",
-                              copyButtonClicked &&
-                                "opacity-100 scale-100 text-primary"
-                            )}
-                          />
-                          <CopyIcon
-                            size={16}
-                            className={cn(
-                              "absolute self-center opacity-100 scale-100 transition-all",
-                              copyButtonClicked && "opacity-0 scale-0"
-                            )}
-                          />
-                        </div>
-
-                        {copyButtonClicked ? (
-                          <span>Copied!</span>
-                        ) : (
-                          <span>Copy code</span>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Copy</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
               <div
                 className={cn(
                   "transition-all duration-300",
                   conversionSuccess ? "opacity-100" : "opacity-0"
                 )}
               >
-                <BorderBeam
-                  size={500}
-                  borderWidth={2}
-                  duration={2}
-                  className="rounded-lg"
-                />
+                <BorderBeam size={400} duration={2} className="rounded-lg" />
               </div>
             </div>
           </div>
