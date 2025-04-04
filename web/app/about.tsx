@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ArrowRightIcon, Code, Github, Mail, Star } from "lucide-react"
 
+import { siteConfig } from "@/config/site"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -10,9 +11,7 @@ export const About = () => {
   return (
     <Card className="w-full max-w-5xl bg-card/50 p-6">
       <div className="flex flex-col items-center text-center">
-        <h2 className="text-2xl font-bold mb-2">
-          About Gradle to Kotlin Converter
-        </h2>
+        <h2 className="text-2xl font-bold mb-2">About ${siteConfig.name}</h2>
         <p className="text-neutral-600 dark:text-neutral-300 mb-4">
           Convert your Gradle build scripts from Groovy to Kotlin DSL with ease.
         </p>
@@ -54,9 +53,7 @@ export const About = () => {
             <div className="p-2 bg-green-100 dark:bg-green-900/40 rounded-lg">
               <Code size={20} className="text-green-600 dark:text-green-400" />
             </div>
-            <h3 className="font-semibold text-base">
-              Gradle to Kotlin Converter
-            </h3>
+            <h3 className="font-semibold text-base">{siteConfig.name}</h3>
           </div>
           <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed mb-4">
             This tool helps Android developers convert their Gradle build
