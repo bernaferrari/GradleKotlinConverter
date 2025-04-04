@@ -41,8 +41,14 @@ export default function CodeEditors() {
     null
   )
   const { resolvedTheme } = useTheme()
+  const [editorTheme, setEditorTheme] = useState<"vs-dark" | "light">("vs-dark")
   const [conversionSuccess, setConversionSuccess] = useState(false)
   const [copyButtonClicked, setCopyButtonClicked] = useState(false)
+
+  // Update editor theme when app theme changes
+  useEffect(() => {
+    setEditorTheme(resolvedTheme === "dark" ? "vs-dark" : "light")
+  }, [resolvedTheme])
 
   const handleClick = async () => {
     setCopyButtonClicked(true)
@@ -150,6 +156,7 @@ export default function CodeEditors() {
               value={gradleInput}
               onChange={(value) => setGradleInput(value || "")}
               onMount={handleGradleEditorDidMount}
+              theme={editorTheme}
               options={{
                 minimap: { enabled: false },
                 lineNumbers: "on",
@@ -216,6 +223,7 @@ export default function CodeEditors() {
                   defaultLanguage="kotlin"
                   value={kotlinOutput}
                   onMount={handleKotlinEditorDidMount}
+                  theme={editorTheme}
                   options={{
                     scrollbar: {
                       vertical: "visible",
@@ -225,7 +233,6 @@ export default function CodeEditors() {
                     lineNumbers: "on",
                     scrollBeyondLastLine: false,
                     fontSize: 14,
-                    theme: resolvedTheme === "dark" ? "vs-dark" : "vs-light",
                   }}
                 />
               </div>
