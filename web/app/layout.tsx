@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   openGraph: {
-    siteName: "Gradle to Kotlin Converter",
+    siteName: siteConfig.name,
     images: "/opengraph-image.png",
   },
   icons: {
