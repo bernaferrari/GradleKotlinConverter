@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react"
 import Editor, { OnMount } from "@monaco-editor/react"
-import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { AnimationControls, motion, useAnimation } from "framer-motion"
 import {
   ArrowDown,
@@ -22,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { BorderBeam } from "@/components/magicui/border-beam"
