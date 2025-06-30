@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import Editor, { OnMount } from "@monaco-editor/react"
-import { AnimationControls, motion, useAnimation } from "framer-motion"
+import { animationControls, motion, useAnimation } from "framer-motion"
 import {
   ArrowDown,
   ArrowRight,
@@ -319,7 +319,7 @@ const AnimatedArrowRight: React.FC<AnimatedArrowProps> = ({
   className,
   gradleInput,
 }) => {
-  const controls: AnimationControls = useAnimation()
+  const controls = useAnimation()
 
   useEffect(() => {
     const animateArrow = async (): Promise<void> => {
@@ -341,7 +341,7 @@ const AnimatedArrowDown: React.FC<AnimatedArrowProps> = ({
   className,
   gradleInput,
 }) => {
-  const controls: AnimationControls = useAnimation()
+  const controls = useAnimation()
 
   useEffect(() => {
     const animateArrow = async (): Promise<void> => {
