@@ -434,7 +434,7 @@ export class GradleToKtsConverter {
   }
 
   private replaceColonWithEquals(text: string): string {
-    const expression = /\w*:\s*".*?"/g
+    const expression = /\b(\w+):\s*([^,)]+)/g
     return this.replaceWithCallback(text, expression, (match) => {
       return match[0].replace(":", " =")
     })
