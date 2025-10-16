@@ -11,7 +11,7 @@ export const About = () => {
   return (
     <Card className="w-full max-w-5xl bg-card/50 p-6">
       <div className="flex flex-col items-center text-center">
-        <h2 className="text-2xl font-bold mb-2">About ${siteConfig.name}</h2>
+        <h2 className="text-2xl font-bold mb-2">About {siteConfig.name}</h2>
         <p className="text-neutral-600 dark:text-neutral-300 mb-4">
           Convert your Gradle build scripts from Groovy to Kotlin DSL with ease.
         </p>

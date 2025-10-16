@@ -27,6 +27,29 @@ While it may not produce a perfect conversion in all cases, it serves as an inva
 
 Visit our [web-based converter](https://gradle-kotlin-converter.vercel.app/) for an easy-to-use interface that doesn't require any local setup.
 
+### Local Development
+
+To run the converter locally:
+
+```bash
+# Navigate to the web directory
+cd web
+
+# Install dependencies (requires pnpm)
+pnpm install
+
+# Start the development server
+pnpm dev
+
+# Run tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+```
+
+The converter will be available at `http://localhost:3000`. The kotlin/ directory contains the original code, which was later adapted to run in the browser and converted to TypeScript. The web/ version is the newer and better maintained one.
+
 ## Conversion Capabilities
 
 The converter handles a wide range of Gradle script elements, including:
