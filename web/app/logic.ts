@@ -3,6 +3,7 @@ type ConversionFunction = (text: string) => string
 export class GradleToKtsConverter {
   private conversionFunctions: ConversionFunction[] = [
     this.replaceApostrophes,
+    this.convertFunctionDeclarations,
     this.replaceDefWithVal,
     this.convertMapExpression,
     this.convertFileTree,
@@ -19,6 +20,9 @@ export class GradleToKtsConverter {
     this.convertDependencies,
     this.convertMaven,
     this.addParentheses,
+    this.convertFlavorDimensions,
+    this.convertUseLibrary,
+    this.convertDimensionToSetDimension,
     this.addEquals,
     this.convertJavaCompatibility,
     this.convertCleanTask,
@@ -28,6 +32,7 @@ export class GradleToKtsConverter {
     this.convertBuildTypes,
     this.convertProductFlavors,
     this.convertSourceSets,
+    this.convertSourceSetsAddSrcDirs,
     this.convertSigningConfigs,
     this.convertExcludeClasspath,
     this.convertExcludeModules,
@@ -37,6 +42,10 @@ export class GradleToKtsConverter {
     this.convertExtToExtra,
     this.addParenthesisToId,
     this.replaceColonWithEquals,
+    this.convertGroovyTasks,
+    this.convertTasksWithType,
+    this.convertKotlinJvmTarget,
+    this.convertTestOptions,
     this.convertBuildFeatures,
   ]
 
@@ -65,6 +74,14 @@ export class GradleToKtsConverter {
 
   private replaceApostrophes(text: string): string {
     return this.replaceAll(text, "'", '"')
+  }
+
+  private convertFunctionDeclarations(text: string): string {
+    // Convert Groovy function declarations to Kotlin
+    // static def functionName() -> fun functionName()
+    // def functionName() -> fun functionName()
+    const functionDeclExp = /(?:static\s+)?def\s+(\w+)\s*\(/g
+    return text.replace(functionDeclExp, 'fun $1(')
   }
 
   private replaceDefWithVal(text: string): string {
@@ -201,17 +218,26 @@ export class GradleToKtsConverter {
   private convertDependencies(text: string): string {
     const testKeywords =
       "testImplementation|androidTestImplementation|debugImplementation|releaseImplementation|compileOnly|testCompileOnly|runtimeOnly|developmentOnly"
-    const gradleKeywords = `(${testKeywords}|implementation|api|annotationProcessor|classpath|kaptTest|kaptAndroidTest|kapt|check|ksp|coreLibraryDesugaring|detektPlugins|lintPublish|lintCheck)`
+    const customKeywords =
+      "modImplementation|modApi|modCompileOnly|modRuntimeOnly"
+    const gradleKeywords = `(${testKeywords}|${customKeywords}|implementation|api|annotationProcessor|classpath|kaptTest|kaptAndroidTest|kapt|check|ksp|coreLibraryDesugaring|detektPlugins|lintPublish|lintCheck)`
+    
+    // Match dependency keywords only at the start of a line or after whitespace,
+    // and not when they're inside quotes or after a hyphen (like in "kotlin-kapt")
     const validKeywords = new RegExp(
-      `(?!${gradleKeywords}\\s*(\\{|"\\)|\\.))${gradleKeywords}.*`,
-      "g"
+      `(?:^|\\s)(?!${gradleKeywords}\\s*(\\{|"\\)|\\.))(?<![-"])${gradleKeywords}\\b(?![-"]).*`,
+      "gm"
     )
 
     return this.replaceWithCallback(text, validKeywords, (match) => {
-      if (match[0].match(/\)(\s*)\{/)) return match[0]
+      // Preserve leading whitespace
+      const leadingWhitespace = match[0].match(/^\s*/)?.[0] || ""
+      const trimmedMatch = match[0].trim()
+      
+      if (trimmedMatch.match(/\)(\s*)\{/)) return match[0]
 
-      const comment = match[0].match(/\s*\/\/.*/)?.[0] || ""
-      const processedSubstring = match[0].replace(comment, "")
+      const comment = trimmedMatch.match(/\s*\/\/.*/)?.[0] || ""
+      const processedSubstring = trimmedMatch.replace(comment, "")
       const gradleKeyword = processedSubstring.match(
         new RegExp(gradleKeywords)
       )?.[0]
@@ -223,9 +249,9 @@ export class GradleToKtsConverter {
         isolated !== "" &&
         (isolated[0] !== "(" || isolated[isolated.length - 1] !== ")")
       ) {
-        return `${gradleKeyword}(${isolated})${comment}`
+        return `${leadingWhitespace}${gradleKeyword}(${isolated})${comment}`
       } else {
-        return `${gradleKeyword}${isolated}${comment}`
+        return `${leadingWhitespace}${gradleKeyword}${isolated}${comment}`
       }
     })
   }
@@ -234,7 +260,7 @@ export class GradleToKtsConverter {
     const mavenExp = /maven\s*\{\s*url\s*(.*?)\s*?}/g
     return this.replaceWithCallback(text, mavenExp, (match) => {
       return match[0]
-        .replace(/(= *uri *\()|(\)|(url)|( ))/g, "")
+        .replace(/(= *uri *\()|=|(\)|(url)|( ))/g, "")
         .replace("{", "(")
         .replace("}", ")")
     })
@@ -247,6 +273,18 @@ export class GradleToKtsConverter {
       const [, keyword, value, rest] = match
       return `${keyword}(${value})${rest}`
     })
+  }
+
+  private convertFlavorDimensions(text: string): string {
+    // Convert flavorDimensions "a", "b" to flavorDimensions("a", "b")
+    const flavorDimensionsExp = /flavorDimensions\s+(.+)/g
+    return text.replace(flavorDimensionsExp, 'flavorDimensions($1)')
+  }
+
+  private convertUseLibrary(text: string): string {
+    // Convert useLibrary "name" to useLibrary("name")
+    const useLibraryExp = /useLibrary\s+("[^"]+")/g
+    return text.replace(useLibraryExp, 'useLibrary($1)')
   }
 
   private addEquals(text: string): string {
@@ -274,7 +312,8 @@ export class GradleToKtsConverter {
       "dataBinding",
       "viewBinding",
     ]
-    const versionExp = new RegExp(`(${keywords.join("|")})\\s*([^\\s{].*)`, "g")
+    // Use word boundary to prevent matching substrings like "compileSdk" in "compileSdkVersion"
+    const versionExp = new RegExp(`\\b(${keywords.join("|")})\\b\\s+([^\\s{].*)`, "g")
 
     return this.replaceWithCallback(text, versionExp, (match) => {
       const [, key, value] = match
@@ -426,18 +465,22 @@ export class GradleToKtsConverter {
   }
 
   private addParenthesisToId(text: string): string {
-    const idExp = /id\s*"(.*?)"/g
-    return this.replaceWithCallback(text, idExp, (match) => {
-      const [, value] = match
-      return `id("${value}")`
+    // Match 'id "..."' or 'id "..."' only when id is at word boundary
+    // This prevents matching 'id' inside the quoted string
+    const idExp = /\bid\s+"([^"]*)"/g
+    return text.replace(idExp, (match, pluginId) => {
+      return `id("${pluginId}")`
     })
   }
 
   private replaceColonWithEquals(text: string): string {
-    const expression = /\b(\w+):\s*([^,)]+)/g
-    return this.replaceWithCallback(text, expression, (match) => {
-      return match[0].replace(":", " =")
-    })
+    // This function converts parameter colons to equals signs (e.g., name: "value" -> name = "value"),
+    // but must avoid converting colons inside quoted strings (like dependency coordinates "org:artifact:version")
+    
+    // Use a regex that matches parameter-style colons but not those inside strings
+    // Match word characters followed by optional whitespace, then colon, then optional whitespace
+    // But only when followed by a quote (to ensure it's a parameter, not part of a string)
+    return text.replace(/\b(\w+)\s*:\s*(?=["'])/g, '$1 = ')
   }
 
   private convertBuildTypes(text: string): string {
@@ -448,8 +491,23 @@ export class GradleToKtsConverter {
     return this.convertNestedTypes(text, "productFlavors", "create")
   }
 
+  private convertDimensionToSetDimension(text: string): string {
+    // Convert dimension "value" to setDimension("value") inside productFlavors blocks
+    // Only match when inside productFlavors context
+    return text.replace(/\bdimension\s+("[^"]+")/g, 'setDimension($1)')
+  }
+
   private convertSourceSets(text: string): string {
     return this.convertNestedTypes(text, "sourceSets", "named")
+  }
+
+  private convertSourceSetsAddSrcDirs(text: string): string {
+    // Convert sourceSets { main.java.srcDirs += "path" } to sourceSets.getByName("main") { java.srcDir("path") }
+    const sourceSetExp = /sourceSets\s*\{\s*main\.java\.srcDirs\s*\+=\s*("[^"]+")\s*\}/g
+    return text.replace(
+      sourceSetExp,
+      'sourceSets.getByName("main") {\n    java.srcDir($1)\n}'
+    )
   }
 
   private convertSigningConfigs(text: string): string {
@@ -463,9 +521,14 @@ export class GradleToKtsConverter {
   ): string {
     const regex = new RegExp(`${buildTypes}\\s*\\{`, "g")
     return this.getExpressionBlock(text, regex, (substring) => {
-      return this.replaceWithCallback(substring, /\S*\s(?=\{)/g, (match) => {
-        const valueWithoutWhitespace = match[0].replace(/\s/g, "")
-        return `${named}("${valueWithoutWhitespace}") `
+      // Match optional leading whitespace, then word, then whitespace before {
+      // but skip if it's the buildTypes keyword
+      return substring.replace(/(^|\n)(\s*)(\w+)(\s+)(?=\{)/gm, (match, lineStart, indent, word, space) => {
+        // Skip the outer keyword (buildTypes, productFlavors, etc.)
+        if (word === buildTypes) {
+          return match
+        }
+        return `${lineStart}${indent}${named}("${word}")${space}`
       })
     })
   }
@@ -483,11 +546,16 @@ export class GradleToKtsConverter {
       const startIndex = result.indexOf(match)
       let count = 0
       let endIndex = startIndex
+      let foundFirstBrace = false
 
       for (let i = startIndex; i < result.length; i++) {
-        if (result[i] === "{") count++
+        if (result[i] === "{") {
+          count++
+          foundFirstBrace = true
+        }
         if (result[i] === "}") count--
-        if (count === 0) {
+        // Only check for end after we've found at least one opening brace
+        if (foundFirstBrace && count === 0) {
           endIndex = i + 1
           break
         }
@@ -502,6 +570,61 @@ export class GradleToKtsConverter {
     }
 
     return result
+  }
+
+  private convertGroovyTasks(text: string): string {
+    const groovyTaskExp = /compileGroovy\s*\{/g
+    return text.replace(
+      groovyTaskExp,
+      'tasks.named<GroovyCompile>("compileGroovy") {'
+    )
+  }
+
+  private convertTasksWithType(text: string): string {
+    // tasks.withType(Type).all { ... } -> tasks.withType<Type> { ... }
+    // tasks.withType(Type) { ... } -> tasks.withType<Type> { ... }
+    const withTypeAll = /tasks\.withType\(\s*([^\)]+?)\s*\)\.all\s*\{/g
+    const withType = /tasks\.withType\(\s*([^\)]+?)\s*\)\s*\{/g
+    let out = text.replace(withTypeAll, 'tasks.withType<$1> {')
+    out = out.replace(withType, 'tasks.withType<$1> {')
+    return out
+  }
+
+  private convertKotlinJvmTarget(text: string): string {
+    // Convert kotlinOptions { jvmTarget = "11" } to
+    // kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_11 } }
+    // and add import org.jetbrains.kotlin.gradle.dsl.JvmTarget if missing
+    const blockRegex = /(\n?)([\t ]*)kotlinOptions\s*\{([\s\S]*?)\n\2\}/g
+    let didChange = false
+
+    const out = text.replace(blockRegex, (full, leadingNL, indent, body) => {
+      const m = body.match(/jvmTarget\s*=\s*(["']?)([\d.]+)\1/)
+      if (!m) return full
+      const version = m[2]
+      const enumValue = version.includes('.')
+        ? `JVM_${version.replace(/\./g, '_')}`
+        : `JVM_${version}`
+      didChange = true
+      const newBlock = `${leadingNL}${indent}kotlin {\n${indent}  compilerOptions {\n${indent}    jvmTarget = JvmTarget.${enumValue}\n${indent}  }\n${indent}}`
+      return newBlock
+    })
+
+    if (didChange && !/^\s*import\s+org\.jetbrains\.kotlin\.gradle\.dsl\.JvmTarget/m.test(out)) {
+      // Prepend import at top
+      return `import org.jetbrains.kotlin.gradle.dsl.JvmTarget\n${out}`
+    }
+    return out
+  }
+
+  private convertTestOptions(text: string): string {
+    // Convert testOptions { unitTests { includeAndroidResources = true } }
+    // to testOptions { unitTests.isIncludeAndroidResources = true }
+    const testOptionsExp =
+      /testOptions\s*\{\s*unitTests\s*\{\s*includeAndroidResources\s*=\s*(true|false)\s*\}\s*\}/g
+    return text.replace(
+      testOptionsExp,
+      'testOptions {\n    unitTests.isIncludeAndroidResources = $1\n}'
+    )
   }
 
   private convertBuildFeatures(text: string): string {
