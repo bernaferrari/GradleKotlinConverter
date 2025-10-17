@@ -1,21 +1,85 @@
-# next-template
+# Gradle Kotlin DSL Converter
 
-A Next.js 13 template for building apps with Radix UI and Tailwind CSS.
+A web-based tool that converts Gradle Groovy DSL build scripts to Kotlin DSL format for Android projects.
 
 ## Usage
 
+### Web Interface
+
 ```bash
-npx create-next-app -e https://github.com/shadcn/next-template
+pnpm install
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to use the converter.
+
+### CLI
+
+You can also use the converter from the command line:
+
+```bash
+# Convert a file
+pnpm cli build.gradle
+
+# Save output to a new file
+pnpm cli build.gradle > build.gradle.kts
+
+# Pipe input
+cat build.gradle | pnpm cli
+
+# Read from stdin
+pnpm cli < build.gradle
+```
+
+**Example:**
+```bash
+echo "apply plugin: 'kotlin-android'" | pnpm cli
+# Output: apply(plugin = "kotlin-android")
 ```
 
 ## Features
 
-- Next.js 13 App Directory
-- Radix UI Primitives
+- Real-time Groovy DSL to Kotlin DSL conversion
+- Side-by-side editor view with syntax highlighting
+- Copy/paste functionality
+- Dark/light theme support
+- CLI support for batch processing
+- Comprehensive conversion rules:
+  - Plugin declarations
+  - Dependencies (including custom configurations like `modImplementation`)
+  - Build types and product flavors
+  - Signing configurations
+  - Android DSL blocks
+  - Task configurations
+  - Version catalogs
+  - Artifacts blocks
+  - And more!
+
+## Development
+
+```bash
+# Run tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Type checking
+pnpm typecheck
+
+# Linting
+pnpm lint
+```
+
+## Technology Stack
+
+- Next.js 15 with App Router
+- React 19
+- TypeScript
 - Tailwind CSS
-- Icons from [Lucide](https://lucide.dev)
-- Dark mode with `next-themes`
-- Tailwind CSS class sorting, merging and linting.
+- Monaco Editor
+- Vitest for testing
+- Shadcn/ui components
 
 ## License
 
