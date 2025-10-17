@@ -34,6 +34,8 @@ export class GradleToKtsConverter {
     this.convertSourceSets,
     this.convertSourceSetsAddSrcDirs,
     this.convertSigningConfigs,
+    this.convertVersionCatalogs,
+    this.convertArtifacts,
     this.convertExcludeClasspath,
     this.convertExcludeModules,
     this.convertExcludeGroups,
@@ -45,6 +47,8 @@ export class GradleToKtsConverter {
     this.convertGroovyTasks,
     this.convertTasksWithType,
     this.convertKotlinJvmTarget,
+    this.convertAllLambdaParamToThisAlias,
+    this.convertCompileKotlinTask,
     this.convertTestOptions,
     this.convertBuildFeatures,
   ]
@@ -101,12 +105,12 @@ export class GradleToKtsConverter {
   }
 
   private convertFileTree(text: string): string {
-    const fileTreeString =
-      /fileTree\(dir(\s*):(\s*)"libs"(\s*),(\s*)include(\s*):(\s*)\["\*.jar"\]\)/g
-    return text.replace(
-      fileTreeString,
-      'fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar")))'
-    )
+    // Convert fileTree with named parameters to mapOf syntax
+    // Handle both colon and equals syntax: fileTree(dir: "...", include: ...)
+    const fileTreeWithNamedParams = /fileTree\(\s*(\w+)\s*[:=]\s*([^,]+),\s*(\w+)\s*[:=]\s*(.+?)\)/g
+    return text.replace(fileTreeWithNamedParams, (match, key1, val1, key2, val2) => {
+      return `fileTree(mapOf("${key1}" to ${val1.trim()}, "${key2}" to ${val2.trim()}))`
+    })
   }
 
   private convertArrayExpression(text: string): string {
@@ -217,7 +221,7 @@ export class GradleToKtsConverter {
 
   private convertDependencies(text: string): string {
     const testKeywords =
-      "testImplementation|androidTestImplementation|debugImplementation|releaseImplementation|compileOnly|testCompileOnly|runtimeOnly|developmentOnly"
+      "testImplementation|androidTestImplementation|debugImplementation|releaseImplementation|compileOnly|testCompileOnly|runtimeOnly|testRuntimeOnly|androidTestRuntimeOnly|debugRuntimeOnly|releaseRuntimeOnly|developmentOnly"
     const customKeywords =
       "modImplementation|modApi|modCompileOnly|modRuntimeOnly"
     const gradleKeywords = `(${testKeywords}|${customKeywords}|implementation|api|annotationProcessor|classpath|kaptTest|kaptAndroidTest|kapt|check|ksp|coreLibraryDesugaring|detektPlugins|lintPublish|lintCheck)`
@@ -235,6 +239,12 @@ export class GradleToKtsConverter {
       const trimmedMatch = match[0].trim()
       
       if (trimmedMatch.match(/\)(\s*)\{/)) return match[0]
+      
+      // Skip lines with assignment operators like +=, -=, etc.
+      if (trimmedMatch.includes(' += ') || trimmedMatch.includes(' -= ') || 
+          trimmedMatch.includes(' *= ') || trimmedMatch.includes(' /= ')) {
+        return match[0]
+      }
 
       const comment = trimmedMatch.match(/\s*\/\/.*/)?.[0] || ""
       const processedSubstring = trimmedMatch.replace(comment, "")
@@ -257,13 +267,33 @@ export class GradleToKtsConverter {
   }
 
   private convertMaven(text: string): string {
-    const mavenExp = /maven\s*\{\s*url\s*(.*?)\s*?}/g
-    return this.replaceWithCallback(text, mavenExp, (match) => {
-      return match[0]
-        .replace(/(= *uri *\()|=|(\)|(url)|( ))/g, "")
-        .replace("{", "(")
-        .replace("}", ")")
-    })
+    // First, handle simple maven { url = "..." } or maven { url "..." } blocks (single line, url only)
+    // These can be converted to the shorthand maven("url") syntax
+    let result = text.replace(
+      /maven\s*\{\s*url\s*=?\s*"([^"]+)"\s*\}/g,
+      'maven("$1")'
+    )
+
+    // Then handle maven blocks with credentials or other nested content
+    // These need to keep the block format but add uri() and proper assignments
+    
+    // Convert url "..." or url '...' to url = uri("...") ONLY if not already converted above
+    // This handles multi-line maven blocks
+    result = result.replace(
+      /\b(url)\s+("[^"]+"|'[^']+')(?!\s*\})/g,
+      (match, keyword, urlValue) => {
+        const cleanUrl = urlValue.replace(/'/g, '"')
+        return `${keyword} = uri(${cleanUrl})`
+      }
+    )
+
+    // Convert username and password assignments
+    result = result.replace(
+      /\b(username|password)\s+("[^"]+")/g,
+      '$1 = $2'
+    )
+
+    return result
   }
 
   private addParentheses(text: string): string {
@@ -514,6 +544,30 @@ export class GradleToKtsConverter {
     return this.convertNestedTypes(text, "signingConfigs", "register")
   }
 
+  private convertVersionCatalogs(text: string): string {
+    // Inside versionCatalogs { <name> { ... } }, rewrite to create("<name>") { ... }
+    const regex = /versionCatalogs\s*\{/g
+    return this.getExpressionBlock(text, regex, (substring) => {
+      return substring.replace(/(^|\n)(\s*)(\w+)(\s+)(?=\{)/gm, (match, lineStart, indent, word, space) => {
+        if (word === 'versionCatalogs' || word === 'create') return match
+        return `${lineStart}${indent}create("${word}")${space}`
+      })
+    })
+  }
+
+  private convertArtifacts(text: string): string {
+    // Convert artifacts { archives shadowJar } to artifacts { add("archives", shadowJar) }
+    const regex = /artifacts\s*\{/g
+    return this.getExpressionBlock(text, regex, (substring) => {
+      // Match lines like: archives shadowJar, archives myTask, etc.
+      // Pattern: <configName> <taskName>
+      return substring.replace(/(^|\n)(\s*)(\w+)\s+(\w+)(\s*)$/gm, (match, lineStart, indent, configName, taskName, trailing) => {
+        if (configName === 'artifacts') return match
+        return `${lineStart}${indent}add("${configName}", ${taskName})${trailing}`
+      })
+    })
+  }
+
   private convertNestedTypes(
     text: string,
     buildTypes: string,
@@ -573,11 +627,25 @@ export class GradleToKtsConverter {
   }
 
   private convertGroovyTasks(text: string): string {
-    const groovyTaskExp = /compileGroovy\s*\{/g
+    const groovyTaskExp = /(^|\n)([\t ]*)compileGroovy\s*\{/g
     return text.replace(
       groovyTaskExp,
-      'tasks.named<GroovyCompile>("compileGroovy") {'
+      (_m, nl, indent) => `${nl}${indent}tasks.named<GroovyCompile>("compileGroovy") {`
     )
+  }
+
+  private convertCompileKotlinTask(text: string): string {
+    // compileKotlin { ... } -> tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") { ... }
+    const header = /(^|\n)([\t ]*)compileKotlin\s*\{/g
+    let out = text.replace(header, (_m, nl, indent) => `${nl}${indent}tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") {`)
+
+    // Inside blocks, normalize dependsOn(tasks.getByPath("...")) -> dependsOn(tasks.named("..."))
+    out = out.replace(/dependsOn\s*\(\s*tasks\.getByPath\(("[^"]+"|'[^']+')\)\s*\)/g, 'dependsOn(tasks.named($1))')
+
+    // Fix accidental classpath(+= files(...)) -> classpath += files(...)
+    out = out.replace(/classpath\(\s*\+=\s*/g, 'classpath += ')
+
+    return out
   }
 
   private convertTasksWithType(text: string): string {
@@ -612,6 +680,27 @@ export class GradleToKtsConverter {
     if (didChange && !/^\s*import\s+org\.jetbrains\.kotlin\.gradle\.dsl\.JvmTarget/m.test(out)) {
       // Prepend import at top
       return `import org.jetbrains.kotlin.gradle.dsl.JvmTarget\n${out}`
+    }
+    return out
+  }
+
+  private convertAllLambdaParamToThisAlias(text: string): string {
+    // Rewrite foo.all { name -> ... } to foo.all { val name = this ... }
+    // Applied to common Gradle DomainObjectSet collections: applicationVariants, outputs
+    const patterns = [
+      /applicationVariants\.all\s*\{\s*(\w+)\s*->/g,
+      /outputs\.all\s*\{\s*(\w+)\s*->/g
+    ]
+    let out = text
+    for (const re of patterns) {
+      out = out.replace(re, (_m, name) => {
+        return `applicationVariants.all { val ${name} = this` // placeholder; fix for outputs below
+      })
+      // fix outputs case where prefix got wrong
+      out = out.replace(/applicationVariants\.all \{ val (\w+) = this(?=[^\n]*outputs\.all)/g, (m) => m)
+      out = out.replace(/outputs\.all \{\s*(\w+)\s*->/g, (_m, name) => {
+        return `outputs.all { val ${name} = this`
+      })
     }
     return out
   }

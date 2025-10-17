@@ -150,6 +150,13 @@ describe('GradleToKtsConverter', () => {
   })
 
   describe('Task conversion', () => {
+    it('should convert compileKotlin task and normalize inner statements', () => {
+      const input = `compileKotlin {\n  dependsOn(tasks.getByPath('compileGroovy'))\n  classpath += files(compileGroovy.destinationDir)\n}`
+      const result = converter.convert(input)
+      expect(result).toContain('tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") {')
+      expect(result).toContain('dependsOn(tasks.named("compileGroovy"))')
+      expect(result).toContain('classpath += files(compileGroovy.destinationDir)')
+    })
     it('should convert tasks.withType(..).all to generics form', () => {
       const input = `tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {\n  kotlinOptions { jvmTarget = "1.8" }\n}`
       const expected = `import org.jetbrains.kotlin.gradle.dsl.JvmTarget\ntasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {\n  kotlin {\n    compilerOptions {\n      jvmTarget = JvmTarget.JVM_1_8\n    }\n  }\n}`
@@ -353,6 +360,22 @@ dependencies {
     })
   })
 
+  describe('DomainObjectSet.all aliasing', () => {
+    it('should alias applicationVariants.all { variant -> } to val variant = this', () => {
+      const input = `android {\n  applicationVariants.all { variant ->\n    println(variant.name)\n  }\n}`
+      const result = converter.convert(input)
+      expect(result).toContain('applicationVariants.all { val variant = this')
+      expect(result).not.toContain('->')
+    })
+
+    it('should alias outputs.all { output -> } to val output = this', () => {
+      const input = `variant.outputs.all { output ->\n  println(output)\n}`
+      const result = converter.convert(input)
+      expect(result).toContain('outputs.all { val output = this')
+      expect(result).not.toContain('->')
+    })
+  })
+
   describe('Function declarations', () => {
     it('should convert def function to fun', () => {
       const input = `def generateTag() {
@@ -375,6 +398,112 @@ dependencies {
       expect(result).toContain('fun generateTag()')
       expect(result).not.toContain('static')
       expect(result).not.toContain('static val')
+    })
+  })
+
+  describe('Kapt dependencies', () => {
+    it('should convert kaptAndroidTest with parentheses', () => {
+      const input = 'kaptAndroidTest SomeLibrary'
+      const expected = 'kaptAndroidTest(SomeLibrary)'
+      const result = converter.convert(input)
+      expect(result).toBe(expected)
+    })
+
+    it('should convert kaptTest with parentheses', () => {
+      const input = 'kaptTest SomeLibrary'
+      const expected = 'kaptTest(SomeLibrary)'
+      const result = converter.convert(input)
+      expect(result).toBe(expected)
+    })
+  })
+
+  describe('RuntimeOnly dependencies', () => {
+    it('should convert testRuntimeOnly with catalog reference', () => {
+      const input = 'testRuntimeOnly libs.junit.jupiter.engine'
+      const expected = 'testRuntimeOnly(libs.junit.jupiter.engine)'
+      const result = converter.convert(input)
+      expect(result).toBe(expected)
+    })
+
+    it('should convert testRuntimeOnly with string dependency', () => {
+      const input = 'testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.9.1"'
+      const expected = 'testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.1")'
+      const result = converter.convert(input)
+      expect(result).toBe(expected)
+    })
+
+    it('should convert androidTestRuntimeOnly', () => {
+      const input = 'androidTestRuntimeOnly "androidx.test:runner:1.4.0"'
+      const expected = 'androidTestRuntimeOnly("androidx.test:runner:1.4.0")'
+      const result = converter.convert(input)
+      expect(result).toBe(expected)
+    })
+  })
+
+  describe('FileTree conversion', () => {
+    it('should convert fileTree with named parameters to mapOf syntax', () => {
+      const input = 'implementation fileTree(dir: "libs", include: [".jar"])'
+      const expected = 'implementation(fileTree(mapOf("dir" to "libs", "include" to listOf(".jar"))))'
+      const result = converter.convert(input)
+      expect(result).toBe(expected)
+    })
+
+    it('should handle fileTree with *.jar pattern', () => {
+      const input = 'implementation fileTree(dir: "libs", include: ["*.jar"])'
+      const expected = 'implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))'
+      const result = converter.convert(input)
+      expect(result).toBe(expected)
+    })
+  })
+
+  describe('Maven with credentials', () => {
+    it('should convert maven block with credentials', () => {
+      const input = `maven {
+  url "https://example.com/repo"
+  credentials {
+    username "SomeUsername"
+    password "SomePassword"
+  }
+}`
+      const result = converter.convert(input)
+      expect(result).toContain('url = uri("https://example.com/repo")')
+      expect(result).toContain('username = "SomeUsername"')
+      expect(result).toContain('password = "SomePassword"')
+    })
+  })
+  describe('Version catalogs', () => {
+    it('should convert catalog blocks to create("name")', () => {
+      const input = `versionCatalogs {\n  libs {\n    version('kotlinVersion', '1.8.0')\n    plugin('kotlin.jvm', 'org.jetbrains.kotlin.jvm').versionRef('kotlinVersion')\n  }\n}`
+      const result = converter.convert(input)
+      expect(result).toContain('versionCatalogs {')
+      expect(result).toContain('create("libs") {')
+      expect(result).not.toContain('\n  libs {')
+    })
+
+    it('should handle multiple catalogs', () => {
+      const input = `versionCatalogs {\n  libs { }\n  testLibs { }\n}`
+      const result = converter.convert(input)
+      expect(result).toContain('create("libs") {')
+      expect(result).toContain('create("testLibs") {')
+      expect(result).not.toContain('\n  libs {')
+      expect(result).not.toContain('\n  testLibs {')
+    })
+  })
+
+  describe('Artifacts', () => {
+    it('should convert archives shadowJar to add("archives", shadowJar)', () => {
+      const input = `artifacts {\n    archives shadowJar\n}`
+      const result = converter.convert(input)
+      expect(result).toContain('artifacts {')
+      expect(result).toContain('add("archives", shadowJar)')
+      expect(result).not.toContain('archives shadowJar')
+    })
+
+    it('should handle multiple artifact configurations', () => {
+      const input = `artifacts {\n    archives shadowJar\n    testArchives testJar\n}`
+      const result = converter.convert(input)
+      expect(result).toContain('add("archives", shadowJar)')
+      expect(result).toContain('add("testArchives", testJar)')
     })
   })
 })
