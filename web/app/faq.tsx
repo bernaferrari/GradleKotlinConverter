@@ -20,7 +20,7 @@ export const FAQ = () => {
           <h2 className="text-2xl font-semibold tracking-tight">FAQ</h2>
         </div>
 
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion className="w-full">
           {/* Item 1: Benefits of Converting to Kotlin DSL */}
           <AccordionItem value="item-1">
             <AccordionTrigger className="text-start font-semibold">
