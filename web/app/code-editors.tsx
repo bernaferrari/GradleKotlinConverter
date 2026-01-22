@@ -115,9 +115,9 @@ export default function CodeEditors() {
                 <span className="text-muted-foreground">Input:</span> Groovy
               </div>
               <div className="flex justify-center gap-2">
-                <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
                       <Button
                         onClick={handlePaste}
                         size={"icon"}
@@ -126,14 +126,14 @@ export default function CodeEditors() {
                       >
                         <ClipboardPasteIcon className="h-4 w-4" />
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Paste</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                    }
+                  />
+                  <TooltipContent>Paste</TooltipContent>
+                </Tooltip>
 
-                <TooltipProvider>
-                  <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
                       <Button
                         onClick={handleReset}
                         size={"icon"}
@@ -142,10 +142,10 @@ export default function CodeEditors() {
                       >
                         <RotateCcwIcon className="h-4 w-4" />
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Restore to default</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                    }
+                  />
+                  <TooltipContent>Restore to default</TooltipContent>
+                </Tooltip>
               </div>
             </div>
 
@@ -183,9 +183,9 @@ export default function CodeEditors() {
                 DSL (KTS)
               </div>
 
-              <TooltipProvider>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
                     <Button
                       onClick={() => handleClick()}
                       variant="outline"
@@ -209,10 +209,10 @@ export default function CodeEditors() {
                         />
                       </div>
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Copy</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                  }
+                />
+                <TooltipContent>Copy</TooltipContent>
+              </Tooltip>
             </div>
 
             <div className="relative overflow-hidden">
