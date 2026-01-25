@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 export const HowItWorks = () => {
   return (
     <Card className="w-full max-w-5xl bg-card/50">
-      <CardContent className="p-6">
+      <CardContent>
         <h2 className="mb-4 text-2xl font-semibold">How It Works</h2>
         <p className="mb-6 text-neutral-600 dark:text-neutral-300">
           Follow these simple steps to convert your Gradle scripts:

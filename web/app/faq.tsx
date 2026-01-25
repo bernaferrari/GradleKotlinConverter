@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card"
 export const FAQ = () => {
   return (
     <Card className="w-full max-w-5xl bg-card/50">
-      <CardContent className="p-6">
+      <CardContent>
         {/* FAQ Title with Icon */}
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
