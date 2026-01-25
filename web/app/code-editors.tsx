@@ -105,8 +105,8 @@ export default function CodeEditors() {
   }
 
   return (
-    <Card className="w-full max-w-5xl bg-card/50 p-0">
-      <CardContent className="p-6">
+    <Card className="w-full max-w-5xl bg-card/50">
+      <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-4 items-start">
           <div className="space-y-2">
             <div className="flex w-full justify-between items-center gap-2 min-h-8">
