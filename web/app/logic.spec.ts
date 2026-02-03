@@ -163,7 +163,6 @@ describe("GradleToKtsConverter", () => {
     });
     it("should convert tasks.withType(..).all to generics form", () => {
       const input = `tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {\n  kotlinOptions { jvmTarget = "1.8" }\n}`;
-      const expected = `import org.jetbrains.kotlin.gradle.dsl.JvmTarget\ntasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {\n  kotlin {\n    compilerOptions {\n      jvmTarget = JvmTarget.JVM_1_8\n    }\n  }\n}`;
       const result = converter.convert(input);
       expect(result).toContain("tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {");
       expect(result).toContain("kotlin {");
@@ -174,7 +173,6 @@ describe("GradleToKtsConverter", () => {
 
     it("should convert tasks.withType(..) { .. } to generics form", () => {
       const input = `tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {\n  kotlinOptions { jvmTarget = "1.8" }\n}`;
-      const expected = `import org.jetbrains.kotlin.gradle.dsl.JvmTarget\ntasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {\n  kotlin {\n    compilerOptions {\n      jvmTarget = JvmTarget.JVM_1_8\n    }\n  }\n}`;
       const result = converter.convert(input);
       expect(result).toContain("tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {");
       expect(result).toContain("kotlin {");

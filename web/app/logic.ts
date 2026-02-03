@@ -114,7 +114,7 @@ export class GradleToKtsConverter {
   }
 
   private convertManifestPlaceHoldersWithMap(text: string): string {
-    const regExp = /manifestPlaceholders = (mapOf\([^\)]*\))/g;
+    const regExp = /manifestPlaceholders = (mapOf\([^)]*\))/g;
     return text.replace(regExp, "manifestPlaceholders.putAll($1)");
   }
 
@@ -614,8 +614,8 @@ export class GradleToKtsConverter {
   private convertTasksWithType(text: string): string {
     // tasks.withType(Type).all { ... } -> tasks.withType<Type> { ... }
     // tasks.withType(Type) { ... } -> tasks.withType<Type> { ... }
-    const withTypeAll = /tasks\.withType\(\s*([^\)]+?)\s*\)\.all\s*\{/g;
-    const withType = /tasks\.withType\(\s*([^\)]+?)\s*\)\s*\{/g;
+    const withTypeAll = /tasks\.withType\(\s*([^)]+?)\s*\)\.all\s*\{/g;
+    const withType = /tasks\.withType\(\s*([^)]+?)\s*\)\s*\{/g;
     let out = text.replace(withTypeAll, "tasks.withType<$1> {");
     out = out.replace(withType, "tasks.withType<$1> {");
     return out;
