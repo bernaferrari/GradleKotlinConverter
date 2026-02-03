@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
-import Editor, { OnMount } from "@monaco-editor/react"
-import { animationControls, motion, useAnimation } from "framer-motion"
+import { useEffect, useRef, useState } from "react";
+import Editor, { OnMount } from "@monaco-editor/react";
+import { animationControls, motion, useAnimation } from "framer-motion";
 import {
   ArrowDown,
   ArrowRight,
@@ -10,99 +10,88 @@ import {
   ClipboardPasteIcon,
   CopyIcon,
   RotateCcwIcon,
-} from "lucide-react"
-import * as monaco from "monaco-editor"
-import { useTheme } from "next-themes"
-import { toast } from "sonner"
+} from "lucide-react";
+import * as monaco from "monaco-editor";
+import { useTheme } from "next-themes";
+import { toast } from "sonner";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { BorderBeam } from "@/components/magicui/border-beam"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { BorderBeam } from "@/components/magicui/border-beam";
 
-import { defaultExample } from "./default-example"
-import { GradleToKtsConverter } from "./logic"
+import { defaultExample } from "./default-example";
+import { GradleToKtsConverter } from "./logic";
 
-const converter = new GradleToKtsConverter() // Assuming you've imported this class
+const converter = new GradleToKtsConverter(); // Assuming you've imported this class
 
 export default function CodeEditors() {
-  const [gradleInput, setGradleInput] = useState(defaultExample)
-  const [kotlinOutput, setKotlinOutput] = useState("")
-  const gradleEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(
-    null
-  )
-  const kotlinEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(
-    null
-  )
-  const { resolvedTheme } = useTheme()
-  const [editorTheme, setEditorTheme] = useState<"vs-dark" | "light">("vs-dark")
-  const [conversionSuccess, setConversionSuccess] = useState(false)
-  const [copyButtonClicked, setCopyButtonClicked] = useState(false)
+  const [gradleInput, setGradleInput] = useState(defaultExample);
+  const [kotlinOutput, setKotlinOutput] = useState("");
+  const gradleEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const kotlinEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const { resolvedTheme } = useTheme();
+  const [editorTheme, setEditorTheme] = useState<"vs-dark" | "light">("vs-dark");
+  const [conversionSuccess, setConversionSuccess] = useState(false);
+  const [copyButtonClicked, setCopyButtonClicked] = useState(false);
 
   // Update editor theme when app theme changes
   useEffect(() => {
-    setEditorTheme(resolvedTheme === "dark" ? "vs-dark" : "light")
-  }, [resolvedTheme])
+    setEditorTheme(resolvedTheme === "dark" ? "vs-dark" : "light");
+  }, [resolvedTheme]);
 
   const handleClick = async () => {
-    setCopyButtonClicked(true)
-    await navigator.clipboard.writeText(
-      kotlinEditorRef.current?.getValue() || ""
-    )
-    toast.success("Copied")
+    setCopyButtonClicked(true);
+    await navigator.clipboard.writeText(kotlinEditorRef.current?.getValue() || "");
+    toast.success("Copied");
 
     setTimeout(() => {
-      setCopyButtonClicked(false)
-    }, 1000)
-  }
+      setCopyButtonClicked(false);
+    }, 1000);
+  };
 
   useEffect(() => {
     const convertGradleToKotlin = () => {
       if (gradleInput.trim() === "") {
-        setKotlinOutput("")
-        setConversionSuccess(false)
-        return null
+        setKotlinOutput("");
+        setConversionSuccess(false);
+        return null;
       }
       try {
-        const converted = converter.convert(gradleInput)
-        setKotlinOutput(converted)
-        setConversionSuccess(true)
-        setTimeout(() => setConversionSuccess(false), 750)
+        const converted = converter.convert(gradleInput);
+        setKotlinOutput(converted);
+        setConversionSuccess(true);
+        setTimeout(() => setConversionSuccess(false), 750);
       } catch (error) {
-        console.error("Conversion error:", error)
-        setConversionSuccess(false)
+        console.error("Conversion error:", error);
+        setConversionSuccess(false);
         toast.error("Conversion Failed", {
           description: "An error occurred during the conversion process.",
-        })
+        });
       }
-    }
+    };
 
-    const debounce = setTimeout(convertGradleToKotlin, 300)
-    return () => clearTimeout(debounce)
-  }, [gradleInput])
+    const debounce = setTimeout(convertGradleToKotlin, 300);
+    return () => clearTimeout(debounce);
+  }, [gradleInput]);
 
   const handleGradleEditorDidMount: OnMount = (editor) => {
-    gradleEditorRef.current = editor
-  }
+    gradleEditorRef.current = editor;
+  };
 
   const handleKotlinEditorDidMount: OnMount = (editor) => {
-    kotlinEditorRef.current = editor
-  }
+    kotlinEditorRef.current = editor;
+  };
 
   const handleReset = () => {
-    setGradleInput(defaultExample)
-    toast.info("Restored to default")
-  }
+    setGradleInput(defaultExample);
+    toast.info("Restored to default");
+  };
 
   const handlePaste = () => {
-    navigator.clipboard.readText().then((text) => setGradleInput(text))
-  }
+    navigator.clipboard.readText().then((text) => setGradleInput(text));
+  };
 
   return (
     <Card className="w-full max-w-5xl bg-card/50">
@@ -179,32 +168,26 @@ export default function CodeEditors() {
             <div className="flex w-full justify-between items-center gap-2 min-h-8">
               <div className="font-medium flex gap-2 items-center min-h-8">
                 <KotlinIcon />
-                <span className="text-muted-foreground">Output:</span> Kotlin
-                DSL (KTS)
+                <span className="text-muted-foreground">Output:</span> Kotlin DSL (KTS)
               </div>
 
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <Button
-                      onClick={() => handleClick()}
-                      variant="outline"
-                      className="w-8 h-8"
-                    >
+                    <Button onClick={() => handleClick()} variant="outline" className="w-8 h-8">
                       <div className="w-4 h-4 relative flex items-center justify-center">
                         <CheckIcon
                           size={16}
                           className={cn(
                             "absolute self-center opacity-0 scale-0 transition-all",
-                            copyButtonClicked &&
-                              "opacity-100 scale-100 text-primary"
+                            copyButtonClicked && "opacity-100 scale-100 text-primary",
                           )}
                         />
                         <CopyIcon
                           size={16}
                           className={cn(
                             "absolute self-center opacity-100 scale-100 transition-all",
-                            copyButtonClicked && "opacity-0 scale-0"
+                            copyButtonClicked && "opacity-0 scale-0",
                           )}
                         />
                       </div>
@@ -240,7 +223,7 @@ export default function CodeEditors() {
               <div
                 className={cn(
                   "transition-all duration-300",
-                  conversionSuccess ? "opacity-100" : "opacity-0"
+                  conversionSuccess ? "opacity-100" : "opacity-0",
                 )}
               >
                 <BorderBeam size={400} duration={2} className="rounded-lg" />
@@ -250,7 +233,7 @@ export default function CodeEditors() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 const GroovyIcon = () => {
@@ -275,8 +258,8 @@ const GroovyIcon = () => {
         </clipPath>
       </defs>
     </svg>
-  )
-}
+  );
+};
 
 const KotlinIcon = () => {
   return (
@@ -307,54 +290,48 @@ const KotlinIcon = () => {
         </linearGradient>
       </defs>
     </svg>
-  )
-}
+  );
+};
 
 interface AnimatedArrowProps {
-  className?: string
-  gradleInput: string
+  className?: string;
+  gradleInput: string;
 }
 
-const AnimatedArrowRight: React.FC<AnimatedArrowProps> = ({
-  className,
-  gradleInput,
-}) => {
-  const controls = useAnimation()
+const AnimatedArrowRight: React.FC<AnimatedArrowProps> = ({ className, gradleInput }) => {
+  const controls = useAnimation();
 
   useEffect(() => {
     const animateArrow = async (): Promise<void> => {
-      await controls.start({ x: 5, transition: { duration: 0.2 } })
-      await controls.start({ x: 0, transition: { duration: 0.2 } })
-    }
+      await controls.start({ x: 5, transition: { duration: 0.2 } });
+      await controls.start({ x: 0, transition: { duration: 0.2 } });
+    };
 
-    animateArrow()
-  }, [gradleInput, controls])
+    animateArrow();
+  }, [gradleInput, controls]);
 
   return (
     <motion.div animate={controls}>
       <ArrowRight className={className} />
     </motion.div>
-  )
-}
+  );
+};
 
-const AnimatedArrowDown: React.FC<AnimatedArrowProps> = ({
-  className,
-  gradleInput,
-}) => {
-  const controls = useAnimation()
+const AnimatedArrowDown: React.FC<AnimatedArrowProps> = ({ className, gradleInput }) => {
+  const controls = useAnimation();
 
   useEffect(() => {
     const animateArrow = async (): Promise<void> => {
-      await controls.start({ y: 5, transition: { duration: 0.2 } })
-      await controls.start({ y: 0, transition: { duration: 0.2 } })
-    }
+      await controls.start({ y: 5, transition: { duration: 0.2 } });
+      await controls.start({ y: 0, transition: { duration: 0.2 } });
+    };
 
-    animateArrow()
-  }, [gradleInput, controls])
+    animateArrow();
+  }, [gradleInput, controls]);
 
   return (
     <motion.div animate={controls}>
       <ArrowDown className={className} />
     </motion.div>
-  )
-}
+  );
+};

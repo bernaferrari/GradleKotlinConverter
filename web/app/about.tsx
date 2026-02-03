@@ -1,11 +1,11 @@
-import Link from "next/link"
-import { ArrowRightIcon, Code, Github, Mail, Star } from "lucide-react"
+import Link from "next/link";
+import { ArrowRightIcon, Code, Github, Mail, Star } from "lucide-react";
 
-import { siteConfig } from "@/config/site"
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { XLogo } from "@/components/x-logo"
+import { siteConfig } from "@/config/site";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { XLogo } from "@/components/x-logo";
 
 export const About = () => {
   return (
@@ -56,9 +56,8 @@ export const About = () => {
             <h3 className="font-semibold text-base">{siteConfig.name}</h3>
           </div>
           <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed mb-4">
-            This tool helps Android developers convert their Gradle build
-            scripts from Groovy to Kotlin DSL, making build configurations more
-            type-safe and easier to maintain.
+            This tool helps Android developers convert their Gradle build scripts from Groovy to
+            Kotlin DSL, making build configurations more type-safe and easier to maintain.
           </p>
           <h4 className="font-semibold text-sm mb-2">Features</h4>
           <ul className="text-neutral-600 dark:text-neutral-300 space-y-2 leading-relaxed">
@@ -98,8 +97,7 @@ export const About = () => {
             <h3 className="font-semibold text-base">Open Source & Contact</h3>
           </div>
           <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed mb-3">
-            This tool is open source and available on GitHub. Contributions are
-            welcome!
+            This tool is open source and available on GitHub. Contributions are welcome!
           </p>
           <Link
             href="https://github.com/bernaferrari/gradlekotlinconverter"
@@ -108,7 +106,7 @@ export const About = () => {
             className={cn(
               buttonVariants({
                 variant: "outline",
-              })
+              }),
             )}
           >
             <Star size={14} className="text-yellow-500 fill-yellow-500" />
@@ -141,5 +139,5 @@ export const About = () => {
         </div>
       </div>
     </Card>
-  )
-}
+  );
+};

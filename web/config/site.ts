@@ -1,4 +1,4 @@
-export type SiteConfig = typeof siteConfig
+export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
   name: "Gradle to Kotlin Converter",
@@ -29,4 +29,4 @@ export const siteConfig = {
     twitter: "https://twitter.com/bernaferrari",
     github: "https://github.com/bernaferrari/gradlekotlinconverter",
   },
-}
+};

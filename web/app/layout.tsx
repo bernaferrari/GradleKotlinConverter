@@ -1,15 +1,15 @@
-import "@/styles/globals.css"
+import "@/styles/globals.css";
 
-import { Metadata, Viewport } from "next"
-import { Toaster } from "sonner"
+import { Metadata, Viewport } from "next";
+import { Toaster } from "sonner";
 
-import { siteConfig } from "@/config/site"
-import { fontSans } from "@/lib/fonts"
-import { cn } from "@/lib/utils"
-import GridPattern from "@/components/magicui/grid-pattern"
-import { SiteHeader } from "@/components/site-header"
-import { TailwindIndicator } from "@/components/tailwind-indicator"
-import { ThemeProvider } from "@/components/theme-provider"
+import { siteConfig } from "@/config/site";
+import { fontSans } from "@/lib/fonts";
+import { cn } from "@/lib/utils";
+import GridPattern from "@/components/magicui/grid-pattern";
+import { SiteHeader } from "@/components/site-header";
+import { TailwindIndicator } from "@/components/tailwind-indicator";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -61,17 +61,17 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-}
+};
 
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "white" },
     { media: "(prefers-color-scheme: dark)", color: "black" },
   ],
-}
+};
 
 interface RootLayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
@@ -104,12 +104,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             }}
           />
         </head>
-        <body
-          className={cn(
-            "min-h-screen bg-background antialiased",
-            fontSans.className
-          )}
-        >
+        <body className={cn("min-h-screen bg-background antialiased", fontSans.className)}>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <div className="relative flex min-h-screen flex-col">
               <SiteHeader />
@@ -137,9 +132,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
                   strokeDasharray={"4 2"}
                   className={cn("opacity-20")}
                 />
-                <div className="z-10 w-full h-full flex flex-col">
-                  {children}
-                </div>
+                <div className="z-10 w-full h-full flex flex-col">{children}</div>
               </div>
             </div>
             <TailwindIndicator />
@@ -148,5 +141,5 @@ export default function RootLayout({ children }: RootLayoutProps) {
         </body>
       </html>
     </>
-  )
+  );
 }

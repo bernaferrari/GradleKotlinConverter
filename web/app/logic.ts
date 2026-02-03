@@ -1,4 +1,4 @@
-type ConversionFunction = (text: string) => string
+type ConversionFunction = (text: string) => string;
 
 export class GradleToKtsConverter {
   private conversionFunctions: ConversionFunction[] = [
@@ -51,88 +51,81 @@ export class GradleToKtsConverter {
     this.convertCompileKotlinTask,
     this.convertTestOptions,
     this.convertBuildFeatures,
-  ]
+  ];
 
   convert(input: string): string {
-    return this.conversionFunctions.reduce(
-      (text, fn) => fn.call(this, text),
-      input
-    )
+    return this.conversionFunctions.reduce((text, fn) => fn.call(this, text), input);
   }
 
-  private replaceAll(
-    str: string,
-    find: string | RegExp,
-    replace: string
-  ): string {
-    return str.replace(new RegExp(find, "g"), replace)
+  private replaceAll(str: string, find: string | RegExp, replace: string): string {
+    return str.replace(new RegExp(find, "g"), replace);
   }
 
   private replaceWithCallback(
     str: string,
     regex: RegExp,
-    callback: (match: RegExpMatchArray) => string
+    callback: (match: RegExpMatchArray) => string,
   ): string {
-    return str.replace(regex, (match, ...args) => callback([match, ...args]))
+    return str.replace(regex, (match, ...args) => callback([match, ...args]));
   }
 
   private replaceApostrophes(text: string): string {
-    return this.replaceAll(text, "'", '"')
+    return this.replaceAll(text, "'", '"');
   }
 
   private convertFunctionDeclarations(text: string): string {
     // Convert Groovy function declarations to Kotlin
     // static def functionName() -> fun functionName()
     // def functionName() -> fun functionName()
-    const functionDeclExp = /(?:static\s+)?def\s+(\w+)\s*\(/g
-    return text.replace(functionDeclExp, 'fun $1(')
+    const functionDeclExp = /(?:static\s+)?def\s+(\w+)\s*\(/g;
+    return text.replace(functionDeclExp, "fun $1(");
   }
 
   private replaceDefWithVal(text: string): string {
-    return text.replace(/(^|\s)def\s+/g, "$1val ")
+    return text.replace(/(^|\s)def\s+/g, "$1val ");
   }
 
   private convertMapExpression(text: string): string {
-    const mapRegExp =
-      /\[(\s*\w+:\s*[^,:\s\]]+\s*(?:,\s*\w+:\s*[^,:\s\]]+\s*)*)\]/g
+    const mapRegExp = /\[(\s*\w+:\s*[^,:\s\]]+\s*(?:,\s*\w+:\s*[^,:\s\]]+\s*)*)\]/g;
     return this.replaceWithCallback(text, mapRegExp, (match) => {
       const entries = match[1].split(",").map((entry) => {
-        const [key, value] = entry.split(":").map((s) => s.trim())
-        return `"${key}" to ${value}`
-      })
-      return `mapOf(${entries.join(", ")})`
-    })
+        const [key, value] = entry.split(":").map((s) => s.trim());
+        return `"${key}" to ${value}`;
+      });
+      return `mapOf(${entries.join(", ")})`;
+    });
   }
 
   private convertFileTree(text: string): string {
     // Convert fileTree with named parameters to mapOf syntax
     // Handle both colon and equals syntax: fileTree(dir: "...", include: ...)
-    const fileTreeWithNamedParams = /fileTree\(\s*(\w+)\s*[:=]\s*([^,]+),\s*(\w+)\s*[:=]\s*(.+?)\)/g
+    const fileTreeWithNamedParams =
+      /fileTree\(\s*(\w+)\s*[:=]\s*([^,]+),\s*(\w+)\s*[:=]\s*(.+?)\)/g;
     return text.replace(fileTreeWithNamedParams, (match, key1, val1, key2, val2) => {
-      return `fileTree(mapOf("${key1}" to ${val1.trim()}, "${key2}" to ${val2.trim()}))`
-    })
+      return `fileTree(mapOf("${key1}" to ${val1.trim()}, "${key2}" to ${val2.trim()}))`;
+    });
   }
 
   private convertArrayExpression(text: string): string {
     return this.replaceWithCallback(text, /\[([^\]]*?)\]/g, (match) => {
-      const content = match[1].trim()
-      return content && !/^\d+$/.test(content) ? `listOf(${content})` : match[0]
-    })
+      const content = match[1].trim();
+      return content && !/^\d+$/.test(content) ? `listOf(${content})` : match[0];
+    });
   }
 
   private convertManifestPlaceHoldersWithMap(text: string): string {
-    const regExp = /manifestPlaceholders = (mapOf\([^\)]*\))/g
-    return text.replace(regExp, "manifestPlaceholders.putAll($1)")
+    const regExp = /manifestPlaceholders = (mapOf\([^\)]*\))/g;
+    return text.replace(regExp, "manifestPlaceholders.putAll($1)");
   }
 
   private convertVariableDeclaration(text: string): string {
-    const varDeclExp = /(?:final\s+)?(\w+)(<.+>)? +(\w+)\s*=\s*(.+)/g
+    const varDeclExp = /(?:final\s+)?(\w+)(<.+>)? +(\w+)\s*=\s*(.+)/g;
     return this.replaceWithCallback(text, varDeclExp, (match) => {
-      const [, type, genericsType, id, value] = match
+      const [, type, genericsType, id, value] = match;
       return type === "val"
         ? match[0]
-        : `val ${id}: ${this.convertType(type)}${genericsType || ""} = ${value}`
-    })
+        : `val ${id}: ${this.convertType(type)}${genericsType || ""} = ${value}`;
+    });
   }
 
   private convertType(type: string): string {
@@ -145,176 +138,147 @@ export class GradleToKtsConverter {
       double: "Double",
       char: "Char",
       boolean: "Boolean",
-    }
-    return typeMap[type] || type
+    };
+    return typeMap[type] || type;
   }
 
   private convertPlugins(text: string): string {
-    const pluginsExp = /apply plugin: (\S+)/g
-    return this.replaceWithCallback(
-      text,
-      pluginsExp,
-      (match) => `apply(plugin = ${match[1]})`
-    )
+    const pluginsExp = /apply plugin: (\S+)/g;
+    return this.replaceWithCallback(text, pluginsExp, (match) => `apply(plugin = ${match[1]})`);
   }
 
   private convertPluginsIntoOneBlock(text: string): string {
-    const fullLineExp = /(apply\(plugin\s*=\s*".*"\)[\s\S]){2,}/g
-    const isolatedId = /".*"(?=\))/g
+    const fullLineExp = /(apply\(plugin\s*=\s*".*"\)[\s\S]){2,}/g;
+    const isolatedId = /".*"(?=\))/g;
 
     return this.replaceWithCallback(text, fullLineExp, (match) => {
       const plugins =
         match[0]
           .match(isolatedId)
           ?.map((id) => `    id(${id})`)
-          .join("\n") || ""
-      return `plugins {\n${plugins}\n}\n`
-    })
+          .join("\n") || "";
+      return `plugins {\n${plugins}\n}\n`;
+    });
   }
 
   private convertPluginsFrom(text: string): string {
-    const pluginsExp = /apply from: (\S+)/g
-    return this.replaceWithCallback(
-      text,
-      pluginsExp,
-      (match) => `apply(from = ${match[1]})`
-    )
+    const pluginsExp = /apply from: (\S+)/g;
+    return this.replaceWithCallback(text, pluginsExp, (match) => `apply(from = ${match[1]})`);
   }
 
   private convertVariantFilter(text: string): string {
-    const arrayExp = /variantFilter\s*\{\s*(\w+\s*->)/g
+    const arrayExp = /variantFilter\s*\{\s*(\w+\s*->)/g;
     return this.replaceWithCallback(
       text,
       arrayExp,
       (match) =>
-        `variantFilter { // ${match[1]} - TODO Manually replace '${match[1]}' variable with this, and setIgnore(true) with ignore = true\n`
-    )
+        `variantFilter { // ${match[1]} - TODO Manually replace '${match[1]}' variable with this, and setIgnore(true) with ignore = true\n`,
+    );
   }
 
   private convertAndroidBuildConfigFunctions(text: string): string {
-    const outerExp =
-      /(buildConfigField|resValue|flavorDimensions|exclude|java\.srcDir)\s+(".*")/g
-    return this.replaceWithCallback(
-      text,
-      outerExp,
-      (match) => `${match[1]}(${match[2]})`
-    )
+    const outerExp = /(buildConfigField|resValue|flavorDimensions|exclude|java\.srcDir)\s+(".*")/g;
+    return this.replaceWithCallback(text, outerExp, (match) => `${match[1]}(${match[2]})`);
   }
 
   private convertCompileToImplementation(text: string): string {
-    const outerExp = /(compile|testCompile)(?!O).*".*"/g
+    const outerExp = /(compile|testCompile)(?!O).*".*"/g;
     return this.replaceWithCallback(text, outerExp, (match) => {
       if (match[0].includes("testCompile")) {
-        return match[0].replace("testCompile", "testImplementation")
+        return match[0].replace("testCompile", "testImplementation");
       } else {
-        return match[0].replace("compile", "implementation")
+        return match[0].replace("compile", "implementation");
       }
-    })
+    });
   }
 
   private replaceCoreLibraryDesugaringEnabled(text: string): string {
-    return text.replace(
-      "coreLibraryDesugaringEnabled",
-      "isCoreLibraryDesugaringEnabled"
-    )
+    return text.replace("coreLibraryDesugaringEnabled", "isCoreLibraryDesugaringEnabled");
   }
 
   private convertDependencies(text: string): string {
     const testKeywords =
-      "testImplementation|androidTestImplementation|debugImplementation|releaseImplementation|compileOnly|testCompileOnly|runtimeOnly|testRuntimeOnly|androidTestRuntimeOnly|debugRuntimeOnly|releaseRuntimeOnly|developmentOnly"
-    const customKeywords =
-      "modImplementation|modApi|modCompileOnly|modRuntimeOnly"
-    const gradleKeywords = `(${testKeywords}|${customKeywords}|implementation|api|annotationProcessor|classpath|kaptTest|kaptAndroidTest|kapt|check|ksp|coreLibraryDesugaring|detektPlugins|lintPublish|lintCheck)`
-    
+      "testImplementation|androidTestImplementation|debugImplementation|releaseImplementation|compileOnly|testCompileOnly|runtimeOnly|testRuntimeOnly|androidTestRuntimeOnly|debugRuntimeOnly|releaseRuntimeOnly|developmentOnly";
+    const customKeywords = "modImplementation|modApi|modCompileOnly|modRuntimeOnly";
+    const gradleKeywords = `(${testKeywords}|${customKeywords}|implementation|api|annotationProcessor|classpath|kaptTest|kaptAndroidTest|kapt|check|ksp|coreLibraryDesugaring|detektPlugins|lintPublish|lintCheck)`;
+
     // Match dependency keywords only at the start of a line or after whitespace,
     // and not when they're inside quotes or after a hyphen (like in "kotlin-kapt")
     const validKeywords = new RegExp(
       `(?:^|\\s)(?!${gradleKeywords}\\s*(\\{|"\\)|\\.))(?<![-"])${gradleKeywords}\\b(?![-"]).*`,
-      "gm"
-    )
+      "gm",
+    );
 
     return this.replaceWithCallback(text, validKeywords, (match) => {
       // Preserve leading whitespace
-      const leadingWhitespace = match[0].match(/^\s*/)?.[0] || ""
-      const trimmedMatch = match[0].trim()
-      
-      if (trimmedMatch.match(/\)(\s*)\{/)) return match[0]
-      
+      const leadingWhitespace = match[0].match(/^\s*/)?.[0] || "";
+      const trimmedMatch = match[0].trim();
+
+      if (trimmedMatch.match(/\)(\s*)\{/)) return match[0];
+
       // Skip lines with assignment operators like +=, -=, etc.
-      if (trimmedMatch.includes(' += ') || trimmedMatch.includes(' -= ') || 
-          trimmedMatch.includes(' *= ') || trimmedMatch.includes(' /= ')) {
-        return match[0]
-      }
-
-      const comment = trimmedMatch.match(/\s*\/\/.*/)?.[0] || ""
-      const processedSubstring = trimmedMatch.replace(comment, "")
-      const gradleKeyword = processedSubstring.match(
-        new RegExp(gradleKeywords)
-      )?.[0]
-      const isolated = processedSubstring
-        .replace(new RegExp(gradleKeywords), "")
-        .trim()
-
       if (
-        isolated !== "" &&
-        (isolated[0] !== "(" || isolated[isolated.length - 1] !== ")")
+        trimmedMatch.includes(" += ") ||
+        trimmedMatch.includes(" -= ") ||
+        trimmedMatch.includes(" *= ") ||
+        trimmedMatch.includes(" /= ")
       ) {
-        return `${leadingWhitespace}${gradleKeyword}(${isolated})${comment}`
-      } else {
-        return `${leadingWhitespace}${gradleKeyword}${isolated}${comment}`
+        return match[0];
       }
-    })
+
+      const comment = trimmedMatch.match(/\s*\/\/.*/)?.[0] || "";
+      const processedSubstring = trimmedMatch.replace(comment, "");
+      const gradleKeyword = processedSubstring.match(new RegExp(gradleKeywords))?.[0];
+      const isolated = processedSubstring.replace(new RegExp(gradleKeywords), "").trim();
+
+      if (isolated !== "" && (isolated[0] !== "(" || isolated[isolated.length - 1] !== ")")) {
+        return `${leadingWhitespace}${gradleKeyword}(${isolated})${comment}`;
+      } else {
+        return `${leadingWhitespace}${gradleKeyword}${isolated}${comment}`;
+      }
+    });
   }
 
   private convertMaven(text: string): string {
     // First, handle simple maven { url = "..." } or maven { url "..." } blocks (single line, url only)
     // These can be converted to the shorthand maven("url") syntax
-    let result = text.replace(
-      /maven\s*\{\s*url\s*=?\s*"([^"]+)"\s*\}/g,
-      'maven("$1")'
-    )
+    let result = text.replace(/maven\s*\{\s*url\s*=?\s*"([^"]+)"\s*\}/g, 'maven("$1")');
 
     // Then handle maven blocks with credentials or other nested content
     // These need to keep the block format but add uri() and proper assignments
-    
+
     // Convert url "..." or url '...' to url = uri("...") ONLY if not already converted above
     // This handles multi-line maven blocks
-    result = result.replace(
-      /\b(url)\s+("[^"]+"|'[^']+')(?!\s*\})/g,
-      (match, keyword, urlValue) => {
-        const cleanUrl = urlValue.replace(/'/g, '"')
-        return `${keyword} = uri(${cleanUrl})`
-      }
-    )
+    result = result.replace(/\b(url)\s+("[^"]+"|'[^']+')(?!\s*\})/g, (match, keyword, urlValue) => {
+      const cleanUrl = urlValue.replace(/'/g, '"');
+      return `${keyword} = uri(${cleanUrl})`;
+    });
 
     // Convert username and password assignments
-    result = result.replace(
-      /\b(username|password)\s+("[^"]+")/g,
-      '$1 = $2'
-    )
+    result = result.replace(/\b(username|password)\s+("[^"]+")/g, "$1 = $2");
 
-    return result
+    return result;
   }
 
   private addParentheses(text: string): string {
     const sdkExp =
-      /(compileSdkVersion|minSdkVersion|targetSdkVersion|consumerProguardFiles)\s*([^\s]*)(.*)/g
+      /(compileSdkVersion|minSdkVersion|targetSdkVersion|consumerProguardFiles)\s*([^\s]*)(.*)/g;
     return this.replaceWithCallback(text, sdkExp, (match) => {
-      const [, keyword, value, rest] = match
-      return `${keyword}(${value})${rest}`
-    })
+      const [, keyword, value, rest] = match;
+      return `${keyword}(${value})${rest}`;
+    });
   }
 
   private convertFlavorDimensions(text: string): string {
     // Convert flavorDimensions "a", "b" to flavorDimensions("a", "b")
-    const flavorDimensionsExp = /flavorDimensions\s+(.+)/g
-    return text.replace(flavorDimensionsExp, 'flavorDimensions($1)')
+    const flavorDimensionsExp = /flavorDimensions\s+(.+)/g;
+    return text.replace(flavorDimensionsExp, "flavorDimensions($1)");
   }
 
   private convertUseLibrary(text: string): string {
     // Convert useLibrary "name" to useLibrary("name")
-    const useLibraryExp = /useLibrary\s+("[^"]+")/g
-    return text.replace(useLibraryExp, 'useLibrary($1)')
+    const useLibraryExp = /useLibrary\s+("[^"]+")/g;
+    return text.replace(useLibraryExp, "useLibrary($1)");
   }
 
   private addEquals(text: string): string {
@@ -341,45 +305,45 @@ export class GradleToKtsConverter {
       "isCoreLibraryDesugaringEnabled",
       "dataBinding",
       "viewBinding",
-    ]
+    ];
     // Use word boundary to prevent matching substrings like "compileSdk" in "compileSdkVersion"
-    const versionExp = new RegExp(`\\b(${keywords.join("|")})\\b\\s+([^\\s{].*)`, "g")
+    const versionExp = new RegExp(`\\b(${keywords.join("|")})\\b\\s+([^\\s{].*)`, "g");
 
     return this.replaceWithCallback(text, versionExp, (match) => {
-      const [, key, value] = match
-      return `${key} = ${value}`
-    })
+      const [, key, value] = match;
+      return `${key} = ${value}`;
+    });
   }
 
   private convertJavaCompatibility(text: string): string {
-    const compatibilityExp = /(sourceCompatibility|targetCompatibility).*/g
+    const compatibilityExp = /(sourceCompatibility|targetCompatibility).*/g;
     return this.replaceWithCallback(text, compatibilityExp, (match) => {
-      const split = match[0].replace(/"]*/g, "").split(/\s+/)
+      const split = match[0].replace(/"]*/g, "").split(/\s+/);
       if (split.length > 1) {
         if (split[split.length - 1].includes("JavaVersion")) {
-          return `${split[0]} = ${split[split.length - 1]}`
+          return `${split[0]} = ${split[split.length - 1]}`;
         } else {
-          return `${split[0]} = JavaVersion.VERSION_${split[split.length - 1].replace(/\./g, "_")}`
+          return `${split[0]} = JavaVersion.VERSION_${split[split.length - 1].replace(/\./g, "_")}`;
         }
       }
-      return match[0]
-    })
+      return match[0];
+    });
   }
 
   private convertCleanTask(text: string): string {
-    const cleanExp = /task clean\(type: Delete\)\s*\{[\s\S]*}/g
+    const cleanExp = /task clean\(type: Delete\)\s*\{[\s\S]*}/g;
     const registerClean = `tasks.register<Delete>("clean").configure {
     delete(rootProject.buildDir)
- }`
-    return text.replace(cleanExp, registerClean)
+ }`;
+    return text.replace(cleanExp, registerClean);
   }
 
   private convertProguardFiles(text: string): string {
-    const proguardExp = /proguardFiles .*/g
+    const proguardExp = /proguardFiles .*/g;
     return this.replaceWithCallback(text, proguardExp, (match) => {
-      const isolatedArgs = match[0].replace(/proguardFiles\s*/, "")
-      return `setProguardFiles(listOf(${isolatedArgs}))`
-    })
+      const isolatedArgs = match[0].replace(/proguardFiles\s*/, "");
+      return `setProguardFiles(listOf(${isolatedArgs}))`;
+    });
   }
 
   private convertInternalBlocks(text: string): string {
@@ -391,297 +355,296 @@ export class GradleToKtsConverter {
       { title: "buildTypes", transform: "minifyEnabled" },
       { title: "buildTypes", transform: "shrinkResources" },
       { title: "", transform: "transitive" },
-    ]
+    ];
 
     return blocks.reduce(
       (acc, { title, transform }) => this.addIsToStr(acc, title, transform),
-      text
-    )
+      text,
+    );
   }
 
-  private addIsToStr(
-    text: string,
-    blockTitle: string,
-    transform: string
-  ): string {
-    const extensionsExp = new RegExp(`${blockTitle}\\s*\\{[\\s\\S]*\\}`, "g")
-    if (!extensionsExp.test(text)) return text
+  private addIsToStr(text: string, blockTitle: string, transform: string): string {
+    const extensionsExp = new RegExp(`${blockTitle}\\s*\\{[\\s\\S]*\\}`, "g");
+    if (!extensionsExp.test(text)) return text;
 
-    const typesExp = new RegExp(`${transform}.*`, "g")
+    const typesExp = new RegExp(`${transform}.*`, "g");
     return this.replaceWithCallback(text, typesExp, (match) => {
-      const split = match[0].split(/\s+/)
+      const split = match[0].split(/\s+/);
       if (split.length > 1) {
-        return `is${split[0][0].toUpperCase() + split[0].slice(1)} = ${split[split.length - 1]}`
+        return `is${split[0][0].toUpperCase() + split[0].slice(1)} = ${split[split.length - 1]}`;
       }
-      return match[0]
-    })
+      return match[0];
+    });
   }
 
   private convertInclude(text: string): string {
-    const expressionBase = /\s*((".*"\s*,)\s*)*(".*")/
-    const includeExp = new RegExp(`include${expressionBase.source}`, "g")
+    const expressionBase = /\s*((".*"\s*,)\s*)*(".*")/;
+    const includeExp = new RegExp(`include${expressionBase.source}`, "g");
 
     return this.replaceWithCallback(text, includeExp, (match) => {
-      if (match[0].includes('include"')) return match[0]
-      const multiLine =
-        match[0].split("\n").filter((line) => line.trim()).length > 1
-      const isolated = match[0].match(expressionBase)?.[0]?.trim() || ""
-      return multiLine ? `include(\n${isolated}\n)` : `include(${isolated})`
-    })
+      if (match[0].includes('include"')) return match[0];
+      const multiLine = match[0].split("\n").filter((line) => line.trim()).length > 1;
+      const isolated = match[0].match(expressionBase)?.[0]?.trim() || "";
+      return multiLine ? `include(\n${isolated}\n)` : `include(${isolated})`;
+    });
   }
 
   private convertExcludeClasspath(text: string): string {
-    const fullLineExp = /.*configurations\.classpath\.exclude.*group:.*/g
-    const innerExp = /".*"/
+    const fullLineExp = /.*configurations\.classpath\.exclude.*group:.*/g;
+    const innerExp = /".*"/;
 
     return this.replaceWithCallback(text, fullLineExp, (match) => {
-      const isolatedStr = match[0].match(innerExp)?.[0] || ""
+      const isolatedStr = match[0].match(innerExp)?.[0] || "";
       return `configurations.classpath {
     exclude(group = ${isolatedStr})
-}`
-    })
+}`;
+    });
   }
 
   private convertExcludeModules(text: string): string {
-    const fullLineExp = /exclude module: (\S+)/g
+    const fullLineExp = /exclude module: (\S+)/g;
     return this.replaceWithCallback(text, fullLineExp, (match) => {
-      const [, moduleId] = match
-      return `exclude(module = ${moduleId})`
-    })
+      const [, moduleId] = match;
+      return `exclude(module = ${moduleId})`;
+    });
   }
 
   private convertExcludeGroups(text: string): string {
-    const fullLineExp = /exclude group: (\S+)/g
+    const fullLineExp = /exclude group: (\S+)/g;
     return this.replaceWithCallback(text, fullLineExp, (match) => {
-      const [, groupId] = match
-      return `exclude(group = ${groupId})`
-    })
+      const [, groupId] = match;
+      return `exclude(group = ${groupId})`;
+    });
   }
 
   private convertJetBrainsKotlin(text: string): string {
-    const fullLineExp = /"org\.jetbrains\.kotlin:kotlin-.*(?=\))/g
-    const removeExp = /(?!org\.jetbrains\.kotlin:kotlin)-.*"/
+    const fullLineExp = /"org\.jetbrains\.kotlin:kotlin-.*(?=\))/g;
+    const removeExp = /(?!org\.jetbrains\.kotlin:kotlin)-.*"/;
 
     return this.replaceWithCallback(text, fullLineExp, (match) => {
-      const substring = (match[0].match(removeExp)?.[0] || "")
-        .slice(1)
-        .replace('"', "")
-      const splittedSubstring = substring.split(":")
+      const substring = (match[0].match(removeExp)?.[0] || "").slice(1).replace('"', "");
+      const splittedSubstring = substring.split(":");
 
       if (substring.includes("stdlib")) {
-        return 'kotlin("stdlib")'
+        return 'kotlin("stdlib")';
       } else if (splittedSubstring.length === 2) {
-        return `kotlin("${splittedSubstring[0]}", version = "${splittedSubstring[1]}")`
+        return `kotlin("${splittedSubstring[0]}", version = "${splittedSubstring[1]}")`;
       } else {
-        return `kotlin("${splittedSubstring[0]}")`
+        return `kotlin("${splittedSubstring[0]}")`;
       }
-    })
+    });
   }
 
   private convertSigningConfigBuildType(text: string): string {
-    const outerExp = /signingConfig.*signingConfigs.*/g
+    const outerExp = /signingConfig.*signingConfigs.*/g;
     return this.replaceWithCallback(text, outerExp, (match) => {
-      const release = match[0].replace(/signingConfig.*signingConfigs\./, "")
-      return `signingConfig = signingConfigs.getByName("${release}")`
-    })
+      const release = match[0].replace(/signingConfig.*signingConfigs\./, "");
+      return `signingConfig = signingConfigs.getByName("${release}")`;
+    });
   }
 
   private convertExtToExtra(text: string): string {
-    const outerExp = /ext\.(\w+)\s*=\s*(.*)/g
+    const outerExp = /ext\.(\w+)\s*=\s*(.*)/g;
     return this.replaceWithCallback(text, outerExp, (match) => {
-      const [, name, value] = match
-      return `extra["${name}"] = ${value}`
-    })
+      const [, name, value] = match;
+      return `extra["${name}"] = ${value}`;
+    });
   }
 
   private addParenthesisToId(text: string): string {
     // Match 'id "..."' or 'id "..."' only when id is at word boundary
     // This prevents matching 'id' inside the quoted string
-    const idExp = /\bid\s+"([^"]*)"/g
+    const idExp = /\bid\s+"([^"]*)"/g;
     return text.replace(idExp, (match, pluginId) => {
-      return `id("${pluginId}")`
-    })
+      return `id("${pluginId}")`;
+    });
   }
 
   private replaceColonWithEquals(text: string): string {
     // This function converts parameter colons to equals signs (e.g., name: "value" -> name = "value"),
     // but must avoid converting colons inside quoted strings (like dependency coordinates "org:artifact:version")
-    
+
     // Use a regex that matches parameter-style colons but not those inside strings
     // Match word characters followed by optional whitespace, then colon, then optional whitespace
     // But only when followed by a quote (to ensure it's a parameter, not part of a string)
-    return text.replace(/\b(\w+)\s*:\s*(?=["'])/g, '$1 = ')
+    return text.replace(/\b(\w+)\s*:\s*(?=["'])/g, "$1 = ");
   }
 
   private convertBuildTypes(text: string): string {
-    return this.convertNestedTypes(text, "buildTypes", "named")
+    return this.convertNestedTypes(text, "buildTypes", "named");
   }
 
   private convertProductFlavors(text: string): string {
-    return this.convertNestedTypes(text, "productFlavors", "create")
+    return this.convertNestedTypes(text, "productFlavors", "create");
   }
 
   private convertDimensionToSetDimension(text: string): string {
     // Convert dimension "value" to setDimension("value") inside productFlavors blocks
     // Only match when inside productFlavors context
-    return text.replace(/\bdimension\s+("[^"]+")/g, 'setDimension($1)')
+    return text.replace(/\bdimension\s+("[^"]+")/g, "setDimension($1)");
   }
 
   private convertSourceSets(text: string): string {
-    return this.convertNestedTypes(text, "sourceSets", "named")
+    return this.convertNestedTypes(text, "sourceSets", "named");
   }
 
   private convertSourceSetsAddSrcDirs(text: string): string {
     // Convert sourceSets { main.java.srcDirs += "path" } to sourceSets.getByName("main") { java.srcDir("path") }
-    const sourceSetExp = /sourceSets\s*\{\s*main\.java\.srcDirs\s*\+=\s*("[^"]+")\s*\}/g
-    return text.replace(
-      sourceSetExp,
-      'sourceSets.getByName("main") {\n    java.srcDir($1)\n}'
-    )
+    const sourceSetExp = /sourceSets\s*\{\s*main\.java\.srcDirs\s*\+=\s*("[^"]+")\s*\}/g;
+    return text.replace(sourceSetExp, 'sourceSets.getByName("main") {\n    java.srcDir($1)\n}');
   }
 
   private convertSigningConfigs(text: string): string {
-    return this.convertNestedTypes(text, "signingConfigs", "register")
+    return this.convertNestedTypes(text, "signingConfigs", "register");
   }
 
   private convertVersionCatalogs(text: string): string {
     // Inside versionCatalogs { <name> { ... } }, rewrite to create("<name>") { ... }
-    const regex = /versionCatalogs\s*\{/g
+    const regex = /versionCatalogs\s*\{/g;
     return this.getExpressionBlock(text, regex, (substring) => {
-      return substring.replace(/(^|\n)(\s*)(\w+)(\s+)(?=\{)/gm, (match, lineStart, indent, word, space) => {
-        if (word === 'versionCatalogs' || word === 'create') return match
-        return `${lineStart}${indent}create("${word}")${space}`
-      })
-    })
+      return substring.replace(
+        /(^|\n)(\s*)(\w+)(\s+)(?=\{)/gm,
+        (match, lineStart, indent, word, space) => {
+          if (word === "versionCatalogs" || word === "create") return match;
+          return `${lineStart}${indent}create("${word}")${space}`;
+        },
+      );
+    });
   }
 
   private convertArtifacts(text: string): string {
     // Convert artifacts { archives shadowJar } to artifacts { add("archives", shadowJar) }
-    const regex = /artifacts\s*\{/g
+    const regex = /artifacts\s*\{/g;
     return this.getExpressionBlock(text, regex, (substring) => {
       // Match lines like: archives shadowJar, archives myTask, etc.
       // Pattern: <configName> <taskName>
-      return substring.replace(/(^|\n)(\s*)(\w+)\s+(\w+)(\s*)$/gm, (match, lineStart, indent, configName, taskName, trailing) => {
-        if (configName === 'artifacts') return match
-        return `${lineStart}${indent}add("${configName}", ${taskName})${trailing}`
-      })
-    })
+      return substring.replace(
+        /(^|\n)(\s*)(\w+)\s+(\w+)(\s*)$/gm,
+        (match, lineStart, indent, configName, taskName, trailing) => {
+          if (configName === "artifacts") return match;
+          return `${lineStart}${indent}add("${configName}", ${taskName})${trailing}`;
+        },
+      );
+    });
   }
 
-  private convertNestedTypes(
-    text: string,
-    buildTypes: string,
-    named: string
-  ): string {
-    const regex = new RegExp(`${buildTypes}\\s*\\{`, "g")
+  private convertNestedTypes(text: string, buildTypes: string, named: string): string {
+    const regex = new RegExp(`${buildTypes}\\s*\\{`, "g");
     return this.getExpressionBlock(text, regex, (substring) => {
       // Match optional leading whitespace, then word, then whitespace before {
       // but skip if it's the buildTypes keyword
-      return substring.replace(/(^|\n)(\s*)(\w+)(\s+)(?=\{)/gm, (match, lineStart, indent, word, space) => {
-        // Skip the outer keyword (buildTypes, productFlavors, etc.)
-        if (word === buildTypes) {
-          return match
-        }
-        return `${lineStart}${indent}${named}("${word}")${space}`
-      })
-    })
+      return substring.replace(
+        /(^|\n)(\s*)(\w+)(\s+)(?=\{)/gm,
+        (match, lineStart, indent, word, space) => {
+          // Skip the outer keyword (buildTypes, productFlavors, etc.)
+          if (word === buildTypes) {
+            return match;
+          }
+          return `${lineStart}${indent}${named}("${word}")${space}`;
+        },
+      );
+    });
   }
 
   private getExpressionBlock(
     text: string,
     expression: RegExp,
-    modifyResult: (s: string) => string
+    modifyResult: (s: string) => string,
   ): string {
-    const matches = text.match(expression)
-    if (!matches) return text
+    const matches = text.match(expression);
+    if (!matches) return text;
 
-    let result = text
+    let result = text;
     for (const match of matches) {
-      const startIndex = result.indexOf(match)
-      let count = 0
-      let endIndex = startIndex
-      let foundFirstBrace = false
+      const startIndex = result.indexOf(match);
+      let count = 0;
+      let endIndex = startIndex;
+      let foundFirstBrace = false;
 
       for (let i = startIndex; i < result.length; i++) {
         if (result[i] === "{") {
-          count++
-          foundFirstBrace = true
+          count++;
+          foundFirstBrace = true;
         }
-        if (result[i] === "}") count--
+        if (result[i] === "}") count--;
         // Only check for end after we've found at least one opening brace
         if (foundFirstBrace && count === 0) {
-          endIndex = i + 1
-          break
+          endIndex = i + 1;
+          break;
         }
       }
 
-      const block = result.substring(startIndex, endIndex)
-      const convertedBlock = modifyResult(block)
-      result =
-        result.substring(0, startIndex) +
-        convertedBlock +
-        result.substring(endIndex)
+      const block = result.substring(startIndex, endIndex);
+      const convertedBlock = modifyResult(block);
+      result = result.substring(0, startIndex) + convertedBlock + result.substring(endIndex);
     }
 
-    return result
+    return result;
   }
 
   private convertGroovyTasks(text: string): string {
-    const groovyTaskExp = /(^|\n)([\t ]*)compileGroovy\s*\{/g
+    const groovyTaskExp = /(^|\n)([\t ]*)compileGroovy\s*\{/g;
     return text.replace(
       groovyTaskExp,
-      (_m, nl, indent) => `${nl}${indent}tasks.named<GroovyCompile>("compileGroovy") {`
-    )
+      (_m, nl, indent) => `${nl}${indent}tasks.named<GroovyCompile>("compileGroovy") {`,
+    );
   }
 
   private convertCompileKotlinTask(text: string): string {
     // compileKotlin { ... } -> tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") { ... }
-    const header = /(^|\n)([\t ]*)compileKotlin\s*\{/g
-    let out = text.replace(header, (_m, nl, indent) => `${nl}${indent}tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") {`)
+    const header = /(^|\n)([\t ]*)compileKotlin\s*\{/g;
+    let out = text.replace(
+      header,
+      (_m, nl, indent) =>
+        `${nl}${indent}tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") {`,
+    );
 
     // Inside blocks, normalize dependsOn(tasks.getByPath("...")) -> dependsOn(tasks.named("..."))
-    out = out.replace(/dependsOn\s*\(\s*tasks\.getByPath\(("[^"]+"|'[^']+')\)\s*\)/g, 'dependsOn(tasks.named($1))')
+    out = out.replace(
+      /dependsOn\s*\(\s*tasks\.getByPath\(("[^"]+"|'[^']+')\)\s*\)/g,
+      "dependsOn(tasks.named($1))",
+    );
 
     // Fix accidental classpath(+= files(...)) -> classpath += files(...)
-    out = out.replace(/classpath\(\s*\+=\s*/g, 'classpath += ')
+    out = out.replace(/classpath\(\s*\+=\s*/g, "classpath += ");
 
-    return out
+    return out;
   }
 
   private convertTasksWithType(text: string): string {
     // tasks.withType(Type).all { ... } -> tasks.withType<Type> { ... }
     // tasks.withType(Type) { ... } -> tasks.withType<Type> { ... }
-    const withTypeAll = /tasks\.withType\(\s*([^\)]+?)\s*\)\.all\s*\{/g
-    const withType = /tasks\.withType\(\s*([^\)]+?)\s*\)\s*\{/g
-    let out = text.replace(withTypeAll, 'tasks.withType<$1> {')
-    out = out.replace(withType, 'tasks.withType<$1> {')
-    return out
+    const withTypeAll = /tasks\.withType\(\s*([^\)]+?)\s*\)\.all\s*\{/g;
+    const withType = /tasks\.withType\(\s*([^\)]+?)\s*\)\s*\{/g;
+    let out = text.replace(withTypeAll, "tasks.withType<$1> {");
+    out = out.replace(withType, "tasks.withType<$1> {");
+    return out;
   }
 
   private convertKotlinJvmTarget(text: string): string {
     // Convert kotlinOptions { jvmTarget = "11" } to
     // kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_11 } }
     // and add import org.jetbrains.kotlin.gradle.dsl.JvmTarget if missing
-    const blockRegex = /(\n?)([\t ]*)kotlinOptions\s*\{([\s\S]*?)\n\2\}/g
-    let didChange = false
+    const blockRegex = /(\n?)([\t ]*)kotlinOptions\s*\{([\s\S]*?)\n\2\}/g;
+    let didChange = false;
 
     const out = text.replace(blockRegex, (full, leadingNL, indent, body) => {
-      const m = body.match(/jvmTarget\s*=\s*(["']?)([\d.]+)\1/)
-      if (!m) return full
-      const version = m[2]
-      const enumValue = version.includes('.')
-        ? `JVM_${version.replace(/\./g, '_')}`
-        : `JVM_${version}`
-      didChange = true
-      const newBlock = `${leadingNL}${indent}kotlin {\n${indent}  compilerOptions {\n${indent}    jvmTarget = JvmTarget.${enumValue}\n${indent}  }\n${indent}}`
-      return newBlock
-    })
+      const m = body.match(/jvmTarget\s*=\s*(["']?)([\d.]+)\1/);
+      if (!m) return full;
+      const version = m[2];
+      const enumValue = version.includes(".")
+        ? `JVM_${version.replace(/\./g, "_")}`
+        : `JVM_${version}`;
+      didChange = true;
+      const newBlock = `${leadingNL}${indent}kotlin {\n${indent}  compilerOptions {\n${indent}    jvmTarget = JvmTarget.${enumValue}\n${indent}  }\n${indent}}`;
+      return newBlock;
+    });
 
     if (didChange && !/^\s*import\s+org\.jetbrains\.kotlin\.gradle\.dsl\.JvmTarget/m.test(out)) {
       // Prepend import at top
-      return `import org.jetbrains.kotlin.gradle.dsl.JvmTarget\n${out}`
+      return `import org.jetbrains.kotlin.gradle.dsl.JvmTarget\n${out}`;
     }
-    return out
+    return out;
   }
 
   private convertAllLambdaParamToThisAlias(text: string): string {
@@ -689,41 +652,44 @@ export class GradleToKtsConverter {
     // Applied to common Gradle DomainObjectSet collections: applicationVariants, outputs
     const patterns = [
       /applicationVariants\.all\s*\{\s*(\w+)\s*->/g,
-      /outputs\.all\s*\{\s*(\w+)\s*->/g
-    ]
-    let out = text
+      /outputs\.all\s*\{\s*(\w+)\s*->/g,
+    ];
+    let out = text;
     for (const re of patterns) {
       out = out.replace(re, (_m, name) => {
-        return `applicationVariants.all { val ${name} = this` // placeholder; fix for outputs below
-      })
+        return `applicationVariants.all { val ${name} = this`; // placeholder; fix for outputs below
+      });
       // fix outputs case where prefix got wrong
-      out = out.replace(/applicationVariants\.all \{ val (\w+) = this(?=[^\n]*outputs\.all)/g, (m) => m)
+      out = out.replace(
+        /applicationVariants\.all \{ val (\w+) = this(?=[^\n]*outputs\.all)/g,
+        (m) => m,
+      );
       out = out.replace(/outputs\.all \{\s*(\w+)\s*->/g, (_m, name) => {
-        return `outputs.all { val ${name} = this`
-      })
+        return `outputs.all { val ${name} = this`;
+      });
     }
-    return out
+    return out;
   }
 
   private convertTestOptions(text: string): string {
     // Convert testOptions { unitTests { includeAndroidResources = true } }
     // to testOptions { unitTests.isIncludeAndroidResources = true }
     const testOptionsExp =
-      /testOptions\s*\{\s*unitTests\s*\{\s*includeAndroidResources\s*=\s*(true|false)\s*\}\s*\}/g
+      /testOptions\s*\{\s*unitTests\s*\{\s*includeAndroidResources\s*=\s*(true|false)\s*\}\s*\}/g;
     return text.replace(
       testOptionsExp,
-      'testOptions {\n    unitTests.isIncludeAndroidResources = $1\n}'
-    )
+      "testOptions {\n    unitTests.isIncludeAndroidResources = $1\n}",
+    );
   }
 
   private convertBuildFeatures(text: string): string {
     const buildFeatures =
-      "(dataBinding|viewBinding|aidl|buildConfig|prefab|renderScript|resValues|shaders|compose)"
-    const state = "(false|true)"
-    const regex = new RegExp(`${buildFeatures}\\s${state}`, "g")
+      "(dataBinding|viewBinding|aidl|buildConfig|prefab|renderScript|resValues|shaders|compose)";
+    const state = "(false|true)";
+    const regex = new RegExp(`${buildFeatures}\\s${state}`, "g");
 
     return this.replaceWithCallback(text, regex, (match) => {
-      return match[0].replace(" ", " = ")
-    })
+      return match[0].replace(" ", " = ");
+    });
   }
 }

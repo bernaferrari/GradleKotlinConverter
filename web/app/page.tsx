@@ -1,7 +1,7 @@
-import { About } from "./about"
-import Client from "./code-editors"
-import { FAQ } from "./faq"
-import { HowItWorks } from "./how-it-works"
+import { About } from "./about";
+import Client from "./code-editors";
+import { FAQ } from "./faq";
+import { HowItWorks } from "./how-it-works";
 
 export default function Component() {
   return (
@@ -13,5 +13,5 @@ export default function Component() {
         <About />
       </main>
     </div>
-  )
+  );
 }

@@ -1,13 +1,13 @@
-import * as React from "react"
-import Link from "next/link"
+import * as React from "react";
+import Link from "next/link";
 
-import { NavItem } from "@/types/nav"
-import { siteConfig } from "@/config/site"
-import { cn } from "@/lib/utils"
-import { Icons } from "@/components/icons"
+import { NavItem } from "@/types/nav";
+import { siteConfig } from "@/config/site";
+import { cn } from "@/lib/utils";
+import { Icons } from "@/components/icons";
 
 interface MainNavProps {
-  items?: NavItem[]
+  items?: NavItem[];
 }
 
 export function MainNav({ items }: MainNavProps) {
@@ -18,9 +18,7 @@ export function MainNav({ items }: MainNavProps) {
         <span className="font-bold overflow-hidden truncate max-w-[30ch] hidden sm:flex">
           {siteConfig.name}
         </span>
-        <span className="font-bold overflow-hidden truncate flex sm:hidden">
-          Gradle to Kotlin
-        </span>
+        <span className="font-bold overflow-hidden truncate flex sm:hidden">Gradle to Kotlin</span>
       </Link>
       {items?.length ? (
         <nav className="flex gap-6">
@@ -32,15 +30,15 @@ export function MainNav({ items }: MainNavProps) {
                   href={item.href}
                   className={cn(
                     "flex items-center text-sm font-medium text-muted-foreground",
-                    item.disabled && "cursor-not-allowed opacity-80"
+                    item.disabled && "cursor-not-allowed opacity-80",
                   )}
                 >
                   {item.title}
                 </Link>
-              )
+              ),
           )}
         </nav>
       ) : null}
     </div>
-  )
+  );
 }

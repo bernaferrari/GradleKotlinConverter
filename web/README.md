@@ -32,6 +32,7 @@ pnpm cli < build.gradle
 ```
 
 **Example:**
+
 ```bash
 echo "apply plugin: 'kotlin-android'" | pnpm cli
 # Output: apply(plugin = "kotlin-android")

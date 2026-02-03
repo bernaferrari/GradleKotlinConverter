@@ -1,12 +1,12 @@
-import { BookOpen } from "lucide-react"
+import { BookOpen } from "lucide-react";
 
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
-import { Card, CardContent } from "@/components/ui/card"
+} from "@/components/ui/accordion";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const FAQ = () => {
   return (
@@ -28,31 +28,29 @@ export const FAQ = () => {
             </AccordionTrigger>
             <AccordionContent className="text-neutral-600 dark:text-neutral-300">
               <p className="mb-2">
-                Converting your Gradle scripts from Groovy to Kotlin DSL brings
-                several key benefits:
+                Converting your Gradle scripts from Groovy to Kotlin DSL brings several key
+                benefits:
               </p>
               <ul className="list-disc pl-5 space-y-2">
                 <li>
-                  <strong>Type Safety:</strong> Kotlin’s static typing catches
-                  errors at compile time, reducing runtime surprises.
+                  <strong>Type Safety:</strong> Kotlin’s static typing catches errors at compile
+                  time, reducing runtime surprises.
                 </li>
                 <li>
-                  <strong>Enhanced IDE Support:</strong> Enjoy superior
-                  autocompletion, navigation, and refactoring in tools like
-                  Android Studio.
+                  <strong>Enhanced IDE Support:</strong> Enjoy superior autocompletion, navigation,
+                  and refactoring in tools like Android Studio.
                 </li>
                 <li>
-                  <strong>Project Consistency:</strong> Align your build scripts
-                  with Kotlin-based app code for a unified codebase.
+                  <strong>Project Consistency:</strong> Align your build scripts with Kotlin-based
+                  app code for a unified codebase.
                 </li>
                 <li>
-                  <strong>Modern Syntax:</strong> Use Kotlin’s concise and
-                  expressive features to streamline your build logic.
+                  <strong>Modern Syntax:</strong> Use Kotlin’s concise and expressive features to
+                  streamline your build logic.
                 </li>
               </ul>
               <p className="mt-2">
-                These advantages make your build process more reliable and
-                efficient.
+                These advantages make your build process more reliable and efficient.
               </p>
             </AccordionContent>
           </AccordionItem>
@@ -65,16 +63,9 @@ export const FAQ = () => {
             <AccordionContent className="text-neutral-600 dark:text-neutral-300">
               <p className="mb-2">If you run into issues while converting:</p>
               <ol className="list-decimal pl-5 space-y-2">
-                <li>
-                  Convert small script sections step-by-step to pinpoint errors
-                  early.
-                </li>
-                <li>
-                  Use an AI tool (e.g., LLM) to resolve tricky syntax questions.
-                </li>
-                <li>
-                  Compare results with Android Studio’s built-in converter.
-                </li>
+                <li>Convert small script sections step-by-step to pinpoint errors early.</li>
+                <li>Use an AI tool (e.g., LLM) to resolve tricky syntax questions.</li>
+                <li>Compare results with Android Studio’s built-in converter.</li>
                 <li>
                   Refer to the{" "}
                   <a
@@ -87,9 +78,7 @@ export const FAQ = () => {
                 </li>
                 <li>Report persistent problems on our GitHub for help.</li>
               </ol>
-              <p className="mt-2">
-                Complex setups might need manual tweaks, so review carefully.
-              </p>
+              <p className="mt-2">Complex setups might need manual tweaks, so review carefully.</p>
             </AccordionContent>
           </AccordionItem>
 
@@ -99,22 +88,14 @@ export const FAQ = () => {
               What are the converter’s limits?
             </AccordionTrigger>
             <AccordionContent className="text-neutral-600 dark:text-neutral-300">
-              <p className="mb-2">
-                Our converter handles most Gradle setups well, but watch for:
-              </p>
+              <p className="mb-2">Our converter handles most Gradle setups well, but watch for:</p>
               <ul className="list-disc pl-5 space-y-2">
                 <li>Custom plugins needing manual tweaks.</li>
                 <li>Groovy idioms without direct Kotlin matches.</li>
-                <li>
-                  Unique project configs requiring post-conversion review.
-                </li>
-                <li>
-                  Potential gaps with the latest Gradle/Kotlin DSL updates.
-                </li>
+                <li>Unique project configs requiring post-conversion review.</li>
+                <li>Potential gaps with the latest Gradle/Kotlin DSL updates.</li>
               </ul>
-              <p className="mt-2">
-                Test the output thoroughly to ensure it fits your project.
-              </p>
+              <p className="mt-2">Test the output thoroughly to ensure it fits your project.</p>
             </AccordionContent>
           </AccordionItem>
 
@@ -131,9 +112,7 @@ export const FAQ = () => {
                 <li>Share your conversion stories to highlight pain points.</li>
                 <li>Add to our docs to assist others.</li>
               </ul>
-              <p className="mt-2">
-                Your contributions strengthen this tool for all Android devs.
-              </p>
+              <p className="mt-2">Your contributions strengthen this tool for all Android devs.</p>
             </AccordionContent>
           </AccordionItem>
 
@@ -146,25 +125,19 @@ export const FAQ = () => {
               <p className="mb-2">After conversion, here’s how to proceed:</p>
               <ul className="list-disc pl-5 space-y-2">
                 <li>
-                  Rename files (e.g., <code>build.gradle</code> to{" "}
-                  <code>build.gradle.kts</code>).
+                  Rename files (e.g., <code>build.gradle</code> to <code>build.gradle.kts</code>).
                 </li>
                 <li>
-                  Update any script references to the new <code>.kts</code>{" "}
-                  extension.
+                  Update any script references to the new <code>.kts</code> extension.
                 </li>
                 <li>Run a Gradle sync in your IDE to validate the changes.</li>
-                <li>
-                  Test your build to confirm everything works as expected.
-                </li>
+                <li>Test your build to confirm everything works as expected.</li>
               </ul>
-              <p className="mt-2">
-                Use version control to safely rollback if issues arise.
-              </p>
+              <p className="mt-2">Use version control to safely rollback if issues arise.</p>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
       </CardContent>
     </Card>
-  )
-}
+  );
+};

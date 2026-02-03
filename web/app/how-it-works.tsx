@@ -1,6 +1,6 @@
-import { Code, Coffee, ColumnsIcon, Zap } from "lucide-react"
+import { Code, Coffee, ColumnsIcon, Zap } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card";
 
 export const HowItWorks = () => {
   return (
@@ -27,13 +27,10 @@ export const HowItWorks = () => {
               <div className="p-2 bg-green-100 dark:bg-green-900/40 rounded-lg">
                 <Zap size={20} className="text-green-600 dark:text-green-400" />
               </div>
-              <h3 className="font-semibold text-base">
-                2. Automatic Conversion
-              </h3>
+              <h3 className="font-semibold text-base">2. Automatic Conversion</h3>
             </div>
             <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
-              The tool processes your code and generates the Kotlin DSL
-              equivalent.
+              The tool processes your code and generates the Kotlin DSL equivalent.
             </p>
           </div>
           <div className="bg-white dark:bg-neutral-800 rounded-xl p-5 border border-neutral-200 dark:border-neutral-700">
@@ -44,31 +41,27 @@ export const HowItWorks = () => {
               <h3 className="font-semibold text-base">3. Review Output</h3>
             </div>
             <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
-              Check the converted Kotlin KTS code in the right panel and see if
-              it worked well.
+              Check the converted Kotlin KTS code in the right panel and see if it worked well.
             </p>
           </div>
           <div className="bg-white dark:bg-neutral-800 rounded-xl p-5 border border-neutral-200 dark:border-neutral-700">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
-                <Coffee
-                  size={20}
-                  className="text-yellow-600 dark:text-yellow-400"
-                />
+                <Coffee size={20} className="text-yellow-600 dark:text-yellow-400" />
               </div>
               <h3 className="font-semibold text-base">4. Copy and Use</h3>
             </div>
             <p className="text-neutral-600 dark:text-neutral-300 leading-relaxed">
-              Use the copy button to transfer the code to your clipboard and
-              integrate it into your project.
+              Use the copy button to transfer the code to your clipboard and integrate it into your
+              project.
             </p>
           </div>
         </div>
         <p className="mt-6 text-neutral-600 dark:text-neutral-300">
-          While the converter handles most cases, complex configurations might
-          need manual adjustments. Please always review the output.
+          While the converter handles most cases, complex configurations might need manual
+          adjustments. Please always review the output.
         </p>
       </CardContent>
     </Card>
-  )
-}
+  );
+};
