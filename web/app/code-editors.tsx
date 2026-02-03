@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Editor, { OnMount } from "@monaco-editor/react";
-import { animationControls, motion, useAnimation } from "framer-motion";
+import { motion, useAnimation } from "framer-motion";
 import {
   ArrowDown,
   ArrowRight,
@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BorderBeam } from "@/components/magicui/border-beam";
 
 import { defaultExample } from "./default-example";
