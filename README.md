@@ -48,7 +48,11 @@ pnpm test
 pnpm test:watch
 ```
 
-The converter will be available at `http://localhost:3000`. The kotlin/ directory contains the original code, which was later adapted to run in the browser and converted to TypeScript. The web/ version is the newer and better maintained one.
+The converter will be available at `http://localhost:3000`.
+
+### About the original Kotlin implementation
+
+The `deprecated_kotlin/` directory contains the old, original Kotlin script implementation. It is kept for reference, but the `web/` version is newer, improved, better maintained, and should be used instead.
 
 ## Conversion Capabilities
 
