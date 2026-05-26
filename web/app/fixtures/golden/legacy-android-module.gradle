@@ -1,0 +1,29 @@
+android {
+    compileSdkVersion 35
+
+    defaultConfig {
+        minSdkVersion 23
+        targetSdkVersion 35
+        versionCode 42
+        versionName '4.2.0'
+        vectorDrawables.useSupportLibrary true
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
+        coreLibraryDesugaringEnabled true
+    }
+
+    useLibrary 'org.apache.http.legacy'
+}
+
+dependencies {
+    compile 'androidx.appcompat:appcompat:1.7.0'
+    testCompile 'junit:junit:4.13.2'
+    androidTestCompile 'androidx.test.ext:junit:1.2.1'
+}

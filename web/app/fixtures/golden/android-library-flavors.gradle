@@ -1,0 +1,26 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.example.feature'
+    compileSdk 36
+    flavorDimensions 'tier', 'api'
+
+    productFlavors {
+        free {
+            dimension 'tier'
+            resValue 'string', 'flavor_name', 'Free'
+            manifestPlaceholders = [appLabel: '@string/free_app_name']
+        }
+        paid {
+            dimension 'tier'
+            resValue 'string', 'flavor_name', 'Paid'
+        }
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+}

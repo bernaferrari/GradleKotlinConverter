@@ -122,6 +122,13 @@ describe("GradleToKtsConverter", () => {
       const result = converter.convert(input);
       expect(result).toBe(expected);
     });
+
+    it("should convert androidTestCompile to androidTestImplementation", () => {
+      const input = 'androidTestCompile "androidx.test.ext:junit:1.2.1"';
+      const expected = 'androidTestImplementation("androidx.test.ext:junit:1.2.1")';
+      const result = converter.convert(input);
+      expect(result).toBe(expected);
+    });
   });
 
   describe("Custom dependency configurations", () => {
@@ -146,6 +153,19 @@ describe("GradleToKtsConverter", () => {
       const expected = `modImplementation("me.shedaniel.cloth:cloth-config-fabric:8.0.75") {
     exclude(group = "net.fabricmc.fabric-api")
 }`;
+      const result = converter.convert(input);
+      expect(result).toBe(expected);
+    });
+
+    it("should not convert transitive inside dependency coordinates", () => {
+      const input = 'implementation("com.example:with-transitives:1.0") { }';
+      const result = converter.convert(input);
+      expect(result).toBe(input);
+    });
+
+    it("should convert combined exclude parameters", () => {
+      const input = 'exclude group: "com.unwanted", module: "legacy"';
+      const expected = 'exclude(group = "com.unwanted", module = "legacy")';
       const result = converter.convert(input);
       expect(result).toBe(expected);
     });
@@ -281,6 +301,13 @@ dependencies {
       const result = converter.convert(input);
       expect(result).toBe(expected);
     });
+
+    it("should replace jcenter with mavenCentral", () => {
+      const input = "repositories {\n    google()\n    jcenter()\n}";
+      const expected = "repositories {\n    google()\n    mavenCentral()\n}";
+      const result = converter.convert(input);
+      expect(result).toBe(expected);
+    });
   });
 
   describe("Additional Android DSL conversions", () => {
@@ -291,14 +318,14 @@ dependencies {
       expect(result).toBe(expected);
     });
 
-    it("should convert dimension to setDimension", () => {
+    it("should convert dimension to a property assignment", () => {
       const input = `productFlavors {
     dev {
         dimension "env"
     }
 }`;
       const result = converter.convert(input);
-      expect(result).toContain('setDimension("env")');
+      expect(result).toContain('dimension = "env"');
       expect(result).toContain('create("dev")');
     });
 
@@ -327,7 +354,8 @@ dependencies {
     main.java.srcDirs += "src/main/kotlin"
 }`;
       const result = converter.convert(input);
-      expect(result).toContain('sourceSets.getByName("main")');
+      expect(result).toContain("sourceSets {");
+      expect(result).toContain('getByName("main")');
       expect(result).toContain('java.srcDir("src/main/kotlin")');
     });
   });
@@ -344,6 +372,14 @@ dependencies {
       expect(result).toBe(expected);
       expect(result).not.toContain('kotlin-kapt("');
       expect(result).not.toContain('kotlin-kapt(")');
+    });
+
+    it("should leave version catalog plugin aliases unchanged", () => {
+      const input = `plugins {
+    alias(libs.plugins.android.application) apply false
+}`;
+      const result = converter.convert(input);
+      expect(result).toBe(input);
     });
   });
 
@@ -477,6 +513,16 @@ dependencies {
       expect(result).toContain('password = "SomePassword"');
     });
   });
+
+  describe("Repositories", () => {
+    it("should convert flatDir dirs to function call syntax", () => {
+      const input = 'flatDir {\n    dirs "libs", "aars"\n}';
+      const expected = 'flatDir {\n    dirs("libs", "aars")\n}';
+      const result = converter.convert(input);
+      expect(result).toBe(expected);
+    });
+  });
+
   describe("Version catalogs", () => {
     it('should convert catalog blocks to create("name")', () => {
       const input = `versionCatalogs {\n  libs {\n    version('kotlinVersion', '1.8.0')\n    plugin('kotlin.jvm', 'org.jetbrains.kotlin.jvm').versionRef('kotlinVersion')\n  }\n}`;
@@ -510,6 +556,15 @@ dependencies {
       const result = converter.convert(input);
       expect(result).toContain('add("archives", shadowJar)');
       expect(result).toContain('add("testArchives", testJar)');
+    });
+  });
+
+  describe("Settings conversions", () => {
+    it("should convert includeBuild to function call syntax", () => {
+      const input = 'includeBuild "../local-plugin"';
+      const expected = 'includeBuild("../local-plugin")';
+      const result = converter.convert(input);
+      expect(result).toBe(expected);
     });
   });
 });

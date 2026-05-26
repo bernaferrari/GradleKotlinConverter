@@ -1,0 +1,19 @@
+pluginManagement {
+    repositories {
+        google()
+        jcenter()
+        maven { url 'https://plugins.gradle.org/m2/' }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        jcenter()
+        maven { url = 'https://jitpack.io' }
+    }
+}
+
+include ':app', ':feature:home'
+includeBuild '../local-plugin'
