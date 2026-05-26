@@ -1,30 +1,40 @@
-name: "diff results"
+name: Tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [main]
   pull_request:
-    branches: [ master ]
+    branches: [main]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "diff"
-  diff:
-    # The type of runner that the job will run on
+  web:
+    name: TypeScript converter
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Install Kotlin
-      run: sudo snap install --classic kotlin
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.3.0
 
-    # Runs a the script. It will produce "tests.txt.kts"
-    - name: Run the script
-      run: kotlinc -script gradlekotlinconverter.kts test_build_gradle skipintro
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
 
-    # Compare the result with the expected result.
-    - name: perform the diff
-      run: diff test_build_gradle.kts expected_build_gradle.kts
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm typecheck
