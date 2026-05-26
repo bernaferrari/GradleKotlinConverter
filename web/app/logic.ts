@@ -3,6 +3,7 @@ type ConversionFunction = (text: string) => string;
 export class GradleToKtsConverter {
   private conversionFunctions: ConversionFunction[] = [
     this.replaceApostrophes,
+    this.removeKotlinCompilerVersionImport,
     this.convertFunctionDeclarations,
     this.replaceDefWithVal,
     this.convertMapExpression,
@@ -19,24 +20,29 @@ export class GradleToKtsConverter {
     this.replaceCoreLibraryDesugaringEnabled,
     this.convertDependencies,
     this.convertMaven,
+    this.convertJCenter,
+    this.convertFlatDir,
+    this.convertAndroidSdkVersionMethodCalls,
     this.addParentheses,
     this.convertFlavorDimensions,
     this.convertUseLibrary,
-    this.convertDimensionToSetDimension,
+    this.convertFlavorDimensionProperty,
     this.addEquals,
     this.convertJavaCompatibility,
     this.convertCleanTask,
     this.convertProguardFiles,
     this.convertInternalBlocks,
+    this.convertIncludeBuild,
     this.convertInclude,
     this.convertBuildTypes,
     this.convertProductFlavors,
-    this.convertSourceSets,
     this.convertSourceSetsAddSrcDirs,
+    this.convertSourceSets,
     this.convertSigningConfigs,
     this.convertVersionCatalogs,
     this.convertArtifacts,
     this.convertExcludeClasspath,
+    this.convertExcludeParameters,
     this.convertExcludeModules,
     this.convertExcludeGroups,
     this.convertJetBrainsKotlin,
@@ -51,6 +57,8 @@ export class GradleToKtsConverter {
     this.convertCompileKotlinTask,
     this.convertTestOptions,
     this.convertBuildFeatures,
+    this.addAgpMigrationWarnings,
+    this.convertExtBlocksToExtra,
   ];
 
   convert(input: string): string {
@@ -71,6 +79,13 @@ export class GradleToKtsConverter {
 
   private replaceApostrophes(text: string): string {
     return this.replaceAll(text, "'", '"');
+  }
+
+  private removeKotlinCompilerVersionImport(text: string): string {
+    return text.replace(
+      /^import\s+org\.jetbrains\.kotlin\.config\.KotlinCompilerVersion\s*\n?/gm,
+      "",
+    );
   }
 
   private convertFunctionDeclarations(text: string): string {
@@ -172,7 +187,7 @@ export class GradleToKtsConverter {
       text,
       arrayExp,
       (match) =>
-        `variantFilter { // ${match[1]} - TODO Manually replace '${match[1]}' variable with this, and setIgnore(true) with ignore = true\n`,
+        `variantFilter { val ${match[1].replace(/\s*->/, "")} = this // TODO(AGP): migrate variantFilter to androidComponents.beforeVariants; setIgnore(true) maps to enabled = false\n`,
     );
   }
 
@@ -182,9 +197,11 @@ export class GradleToKtsConverter {
   }
 
   private convertCompileToImplementation(text: string): string {
-    const outerExp = /(compile|testCompile)(?!O).*".*"/g;
+    const outerExp = /(androidTestCompile|testCompile|compile)(?!O).*".*"/g;
     return this.replaceWithCallback(text, outerExp, (match) => {
-      if (match[0].includes("testCompile")) {
+      if (match[0].includes("androidTestCompile")) {
+        return match[0].replace("androidTestCompile", "androidTestImplementation");
+      } else if (match[0].includes("testCompile")) {
         return match[0].replace("testCompile", "testImplementation");
       } else {
         return match[0].replace("compile", "implementation");
@@ -260,6 +277,29 @@ export class GradleToKtsConverter {
     return result;
   }
 
+  private convertJCenter(text: string): string {
+    return text.replace(/\bjcenter\(\)/g, "mavenCentral()");
+  }
+
+  private convertFlatDir(text: string): string {
+    return text.replace(/\bdirs\s+("[^"\n]+"(?:\s*,\s*"[^"\n]+")*)/g, "dirs($1)");
+  }
+
+  private convertAndroidSdkVersionMethodCalls(text: string): string {
+    const sdkMethods: Record<string, string> = {
+      compileSdkVersion: "compileSdk",
+      minSdkVersion: "minSdk",
+      targetSdkVersion: "targetSdk",
+    };
+
+    return text.replace(
+      /\b(compileSdkVersion|minSdkVersion|targetSdkVersion)\(([^)]+)\)/g,
+      (_match, method, value) => {
+        return `${sdkMethods[method]} = ${value.trim()}`;
+      },
+    );
+  }
+
   private addParentheses(text: string): string {
     const sdkExp =
       /(compileSdkVersion|minSdkVersion|targetSdkVersion|consumerProguardFiles)\s*([^\s]*)(.*)/g;
@@ -307,11 +347,14 @@ export class GradleToKtsConverter {
       "viewBinding",
     ];
     // Use word boundary to prevent matching substrings like "compileSdk" in "compileSdkVersion"
-    const versionExp = new RegExp(`\\b(${keywords.join("|")})\\b\\s+([^\\s{].*)`, "g");
+    const versionExp = new RegExp(
+      `(^|\\n)([\\t ]*)([\\w.]+\\.)?(${keywords.join("|")})\\s+(?!=|->)([^\\s{].*)`,
+      "g",
+    );
 
     return this.replaceWithCallback(text, versionExp, (match) => {
-      const [, key, value] = match;
-      return `${key} = ${value}`;
+      const [, lineStart, indent, receiver = "", key, value] = match;
+      return `${lineStart}${indent}${receiver}${key} = ${value}`;
     });
   }
 
@@ -367,13 +410,9 @@ export class GradleToKtsConverter {
     const extensionsExp = new RegExp(`${blockTitle}\\s*\\{[\\s\\S]*\\}`, "g");
     if (!extensionsExp.test(text)) return text;
 
-    const typesExp = new RegExp(`${transform}.*`, "g");
-    return this.replaceWithCallback(text, typesExp, (match) => {
-      const split = match[0].split(/\s+/);
-      if (split.length > 1) {
-        return `is${split[0][0].toUpperCase() + split[0].slice(1)} = ${split[split.length - 1]}`;
-      }
-      return match[0];
+    const typesExp = new RegExp(`(^|\\n)([\\t ]*)${transform}\\s*=?\\s*(true|false)`, "g");
+    return text.replace(typesExp, (_match, lineStart, indent, value) => {
+      return `${lineStart}${indent}is${transform[0].toUpperCase() + transform.slice(1)} = ${value}`;
     });
   }
 
@@ -389,6 +428,10 @@ export class GradleToKtsConverter {
     });
   }
 
+  private convertIncludeBuild(text: string): string {
+    return text.replace(/(^|\n)([\t ]*)includeBuild\s+("[^"]+")/g, "$1$2includeBuild($3)");
+  }
+
   private convertExcludeClasspath(text: string): string {
     const fullLineExp = /.*configurations\.classpath\.exclude.*group:.*/g;
     const innerExp = /".*"/;
@@ -399,6 +442,14 @@ export class GradleToKtsConverter {
     exclude(group = ${isolatedStr})
 }`;
     });
+  }
+
+  private convertExcludeParameters(text: string): string {
+    return text.replace(
+      /\bexclude\s+group:\s*("[^"]+")(?:\s*,\s*module:\s*("[^"]+"))?/g,
+      (_match, group, module) =>
+        module ? `exclude(group = ${group}, module = ${module})` : `exclude(group = ${group})`,
+    );
   }
 
   private convertExcludeModules(text: string): string {
@@ -451,6 +502,47 @@ export class GradleToKtsConverter {
     });
   }
 
+  private convertExtBlocksToExtra(text: string): string {
+    const regex = /(^|\n)([\t ]*)ext\s*\{/g;
+    return this.getExpressionBlock(text, regex, (block) => {
+      const lines = block.split("\n");
+      if (lines.length < 2) return block;
+
+      const firstLine = lines[0];
+      const baseIndent = firstLine.match(/^([\t ]*)/)?.[1] || "";
+      const innerIndent = `${baseIndent}    `;
+      const bodyLines = lines.slice(1, -1);
+
+      let closureDepth = 0;
+      const convertedLines = bodyLines.map((line) => {
+        if (!line.trim()) return line;
+        if (line.trimStart().startsWith("//")) return line.replace(innerIndent, baseIndent);
+
+        if (closureDepth > 0) {
+          closureDepth += (line.match(/\{/g) || []).length;
+          closureDepth -= (line.match(/\}/g) || []).length;
+          return line.replace(innerIndent, baseIndent);
+        }
+
+        const assignment = line.match(/^([\t ]*)(\w+)\s*=\s*(.+)$/);
+        if (!assignment)
+          return `${baseIndent}// TODO: manually convert ext block line: ${line.trim()}`;
+
+        const [, indent, name, value] = assignment;
+        const closure = value.match(/^\{\s*([A-Z]\w*(?:\.[A-Z]\w*)?)\s+(\w+)\s*->\s*(.*)$/);
+        if (closure) {
+          const [, type, param, rest] = closure;
+          closureDepth = 1 + (rest.match(/\{/g) || []).length - (rest.match(/\}/g) || []).length;
+          return `${indent.replace(innerIndent, baseIndent)}extra["${name}"] = { ${param}: ${type} ->${rest ? ` ${rest}` : ""}`;
+        }
+
+        return `${indent.replace(innerIndent, baseIndent)}extra["${name}"] = ${value}`;
+      });
+
+      return convertedLines.join("\n");
+    });
+  }
+
   private addParenthesisToId(text: string): string {
     // Match 'id "..."' or 'id "..."' only when id is at word boundary
     // This prevents matching 'id' inside the quoted string
@@ -478,10 +570,8 @@ export class GradleToKtsConverter {
     return this.convertNestedTypes(text, "productFlavors", "create");
   }
 
-  private convertDimensionToSetDimension(text: string): string {
-    // Convert dimension "value" to setDimension("value") inside productFlavors blocks
-    // Only match when inside productFlavors context
-    return text.replace(/\bdimension\s+("[^"]+")/g, "setDimension($1)");
+  private convertFlavorDimensionProperty(text: string): string {
+    return text.replace(/\bdimension\s+("[^"]+")/g, "dimension = $1");
   }
 
   private convertSourceSets(text: string): string {
@@ -489,9 +579,17 @@ export class GradleToKtsConverter {
   }
 
   private convertSourceSetsAddSrcDirs(text: string): string {
-    // Convert sourceSets { main.java.srcDirs += "path" } to sourceSets.getByName("main") { java.srcDir("path") }
-    const sourceSetExp = /sourceSets\s*\{\s*main\.java\.srcDirs\s*\+=\s*("[^"]+")\s*\}/g;
-    return text.replace(sourceSetExp, 'sourceSets.getByName("main") {\n    java.srcDir($1)\n}');
+    const sourceSetExp =
+      /(^|\n)([\t ]*)sourceSets\s*\{\s*\n?[\t ]*main\.java\.srcDirs\s*\+=\s*("[^"]+")\s*\n?[\t ]*\}/g;
+
+    return text.replace(sourceSetExp, (_match, lineStart, indent, path) => {
+      const innerIndent = `${indent}    `;
+      return `${lineStart}${indent}sourceSets {
+${innerIndent}getByName("main") {
+${innerIndent}    java.srcDir(${path})
+${innerIndent}}
+${indent}}`;
+    });
   }
 
   private convertSigningConfigs(text: string): string {
@@ -691,5 +789,22 @@ export class GradleToKtsConverter {
     return this.replaceWithCallback(text, regex, (match) => {
       return match[0].replace(" ", " = ");
     });
+  }
+
+  private addAgpMigrationWarnings(text: string): string {
+    let out = text;
+    out = out.replace(
+      /(^|\n)([\t ]*)variantFilter\s*\{/g,
+      "$1$2// TODO(AGP): variantFilter is deprecated; migrate this block to androidComponents.beforeVariants.\n$2variantFilter {",
+    );
+    out = out.replace(
+      /(^|\n)([\t ]*)density\s*\{/g,
+      "$1$2// TODO(AGP): density APK splits are removed in AGP 9; use Android App Bundle device targeting instead.\n$2density {",
+    );
+    out = out.replace(
+      /(^|\n)([\t ]*)(renderScript\s*=\s*(?:true|false)|renderscript\w*\s*=?\s*[^)\n]+)/gi,
+      "$1$2// TODO(AGP): RenderScript support is deprecated and removed in newer AGP versions; migrate away from RenderScript.\n$2$3",
+    );
+    return out;
   }
 }

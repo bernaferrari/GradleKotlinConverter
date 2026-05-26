@@ -50,6 +50,31 @@ pnpm test:watch
 
 The converter will be available at `http://localhost:3000`.
 
+### Command-line usage
+
+The TypeScript converter can also run locally as a CLI after installing dependencies:
+
+```bash
+cd web
+
+# Convert a file and print the result
+pnpm cli build.gradle
+
+# Convert from stdin
+pnpm cli < build.gradle
+
+# Write the converted output to a Kotlin DSL file
+pnpm cli build.gradle > build.gradle.kts
+```
+
+### Testing strategy
+
+The TypeScript converter is covered by focused unit tests and full-file golden fixtures.
+
+- Add focused tests in `web/app/logic.spec.ts` for isolated syntax regressions.
+- Add full-file examples in `web/app/fixtures/golden/` when a conversion depends on several rules interacting. Each `*.gradle` input must have a matching `*.gradle.kts` expected output.
+- Keep known future migration work as explicit `it.todo(...)` cases when the converter should not pretend to support a Gradle or AGP migration yet.
+
 ### About the original Kotlin implementation
 
 The `deprecated_kotlin/` directory contains the old, original Kotlin script implementation. It is kept for reference, but the `web/` version is newer, improved, better maintained, and should be used instead.
