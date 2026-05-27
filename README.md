@@ -75,9 +75,9 @@ The TypeScript converter is covered by focused unit tests and full-file golden f
 - Add full-file examples in `web/app/fixtures/golden/` when a conversion depends on several rules interacting. Each `*.gradle` input must have a matching `*.gradle.kts` expected output.
 - Keep known future migration work as explicit `it.todo(...)` cases when the converter should not pretend to support a Gradle or AGP migration yet.
 
-### About the original Kotlin implementation
+### Kotlin script implementation
 
-The `deprecated_kotlin/` directory contains the old, original Kotlin script implementation. It is kept for reference, but the `web/` version is newer, improved, better maintained, and should be used instead.
+The `kotlin/` directory contains a standalone Kotlin script implementation of the converter. It has been brought to near feature and test parity with the TypeScript version (including byte-exact matching on all golden fixtures). The `web/` version remains the primary and more actively maintained implementation, with additional modern features such as AGP migration warnings.
 
 ## Conversion Capabilities
 
