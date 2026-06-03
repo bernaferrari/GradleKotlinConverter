@@ -13,6 +13,8 @@ jobs:
     defaults:
       run:
         working-directory: web
+    env:
+      PNPM_CONFIG_IGNORE_SCRIPTS: "true"
 
     steps:
       - name: Checkout
@@ -21,7 +23,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11.3.0
+          version: 11.5.1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,3 +40,25 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+  kotlin:
+    name: Kotlin script converter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Kotlin
+        uses: fwilhe2/setup-kotlin@v1.8
+        with:
+          version: 2.2.21
+
+      - name: Run Kotlin converter tests
+        run: ./kotlin/test.sh

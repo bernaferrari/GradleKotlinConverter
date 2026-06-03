@@ -45,6 +45,22 @@ compare_to_expected() {
   fi
 }
 
+compare_inline() {
+  local name="$1"
+  local input="$2"
+  local expected="$3"
+
+  local tmp_input
+  local tmp_expected
+  tmp_input=$(mktemp)
+  tmp_expected=$(mktemp)
+  printf "%s" "$input" > "$tmp_input"
+  printf "%s" "$expected" > "$tmp_expected"
+
+  compare_to_expected "$tmp_input" "$tmp_expected" "$name"
+  rm -f "$tmp_input" "$tmp_expected"
+}
+
 echo "=== GradleKotlinConverter kotlin script tests ==="
 echo "Using golden fixtures from: $GOLDEN_DIR"
 echo
@@ -78,6 +94,28 @@ else
   echo -e "${GREEN}✓${NC} has matching expected output for every input fixture"
   ((passes++))
 fi
+
+echo
+echo "--- Focused TypeScript parity regressions ---"
+compare_inline \
+  "regression: removes obsolete KotlinCompilerVersion import" \
+  $'import org.jetbrains.kotlin.config.KotlinCompilerVersion\nplugins {\n    id "org.jetbrains.kotlin.jvm"\n}\n' \
+  $'plugins {\n    id("org.jetbrains.kotlin.jvm")\n}\n'
+
+compare_inline \
+  "regression: flags variantFilter migration and aliases lambda parameter" \
+  $'android {\n  variantFilter { variant ->\n    setIgnore(true)\n  }\n}\n' \
+  $'android {\n  // TODO(AGP): variantFilter is deprecated; migrate this block to androidComponents.beforeVariants.\n  variantFilter { val variant = this // TODO(AGP): migrate variantFilter to androidComponents.beforeVariants; setIgnore(true) maps to enabled = false\n\n    setIgnore(true)\n  }\n}\n'
+
+compare_inline \
+  "regression: flags density split migration" \
+  $'android {\n  splits {\n    density {\n      enable true\n    }\n  }\n}\n' \
+  $'android {\n  splits {\n    // TODO(AGP): density APK splits are removed in AGP 9; use Android App Bundle device targeting instead.\n    density {\n      enable true\n    }\n  }\n}\n'
+
+compare_inline \
+  "regression: flags RenderScript build feature migration" \
+  $'buildFeatures {\n  renderScript true\n}\n' \
+  $'buildFeatures {\n  // TODO(AGP): RenderScript support is deprecated and removed in newer AGP versions; migrate away from RenderScript.\n  renderScript = true\n}\n'
 
 echo
 echo "=== Summary: ${passes} passed, ${failures} failed ==="

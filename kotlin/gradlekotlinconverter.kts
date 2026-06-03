@@ -95,6 +95,9 @@ val textToConvert = if (isInClipBoardMode) getClipboardContents() else readFromF
 // We do not replace '"45"' --> "\"45\"" becaues we cannot safely match start and end quote with regExp's
 fun String.replaceApostrophes(): String = this.replace("'", "\"")
 
+fun String.removeKotlinCompilerVersionImport(): String =
+    this.replace("""(?m)^import\s+org\.jetbrains\.kotlin\.config\.KotlinCompilerVersion\s*\n?""".toRegex(), "")
+
 // def appcompat = "1.0.0"
 // becomes
 // val appcompat = "1.0.0"
@@ -192,7 +195,8 @@ fun String.convertVariantFilter(): String {
     val arrayExp = """variantFilter\s*\{\s*(\w+\s*->)""".toRegex(DOT_MATCHES_ALL)
 
     return this.replace(arrayExp) {
-        "variantFilter { // ${it.groupValues[1]} - TODO Manually replace '${it.groupValues[1]}' variable with this, and setIgnore(true) with ignore = true\n"
+        val parameter = it.groupValues[1].replace("""\s*->""".toRegex(), "")
+        "variantFilter { val $parameter = this // TODO(AGP): migrate variantFilter to androidComponents.beforeVariants; setIgnore(true) maps to enabled = false\n"
     }
 }
 
@@ -862,6 +866,19 @@ fun String.convertBuildFeatures(): String {
     }
 }
 
+fun String.addAgpMigrationWarnings(): String {
+    var result = this.replace("""(^|\n)([\t ]*)variantFilter\s*\{""".toRegex()) { match ->
+        "${match.groupValues[1]}${match.groupValues[2]}// TODO(AGP): variantFilter is deprecated; migrate this block to androidComponents.beforeVariants.\n${match.groupValues[2]}variantFilter {"
+    }
+    result = result.replace("""(^|\n)([\t ]*)density\s*\{""".toRegex()) { match ->
+        "${match.groupValues[1]}${match.groupValues[2]}// TODO(AGP): density APK splits are removed in AGP 9; use Android App Bundle device targeting instead.\n${match.groupValues[2]}density {"
+    }
+    result = result.replace("""(?im)(^|\n)([\t ]*)(renderScript\s*=\s*(?:true|false)|renderscript\w*\s*=?\s*[^)\n]+)""".toRegex()) { match ->
+        "${match.groupValues[1]}${match.groupValues[2]}// TODO(AGP): RenderScript support is deprecated and removed in newer AGP versions; migrate away from RenderScript.\n${match.groupValues[2]}${match.groupValues[3]}"
+    }
+    return result
+}
+
 // Guarantee the final output ends with exactly one newline (no extra blank line).
 // Matches the exact bytes in the TS golden .gradle.kts files.
 fun String.withSingleFinalNewline(): String {
@@ -908,6 +925,7 @@ fun String.normalizeSourceSetsAddSrcDirs(): String {
 fun convertText(input: String): String =
     input
         .replaceApostrophes()
+        .removeKotlinCompilerVersionImport()
         .replaceDefWithVal()
         .convertMapExpression() // Run before array
         .convertFileTree()
@@ -951,6 +969,7 @@ fun convertText(input: String): String =
         .addParenthesisToId()
         .replaceColonWithEquals()
         .convertBuildFeatures()
+        .addAgpMigrationWarnings()
         .withSingleFinalNewline()
         .normalizeKotlinJvmTargetBlock()
         .normalizeSourceSetsAddSrcDirs()
