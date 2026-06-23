@@ -1,6 +1,6 @@
 # Gradle Kotlin DSL Converter
 
-A web-based tool that converts Gradle Groovy DSL build scripts to Kotlin DSL format for Android projects.
+A web-based tool that converts Gradle Groovy DSL build scripts to Kotlin DSL format for Android and other Gradle projects.
 
 ## Usage
 
@@ -50,7 +50,7 @@ echo "apply plugin: 'kotlin-android'" | pnpm cli
   - Dependencies (including custom configurations like `modImplementation`)
   - Build types and product flavors
   - Signing configurations
-  - Android DSL blocks
+  - Android and Gradle DSL blocks (build types, flavors, signing, source sets, etc.)
   - Task configurations
   - Version catalogs
   - Artifacts blocks
@@ -74,7 +74,7 @@ pnpm lint
 
 ## Technology Stack
 
-- Next.js 15 with App Router
+- Next.js 16 with App Router
 - React 19
 - TypeScript
 - Tailwind CSS
@@ -84,4 +84,4 @@ pnpm lint
 
 ## License
 
-Licensed under the [MIT license](https://github.com/shadcn/ui/blob/main/LICENSE.md).
+The overall project is licensed under the Apache License 2.0 (see the root [LICENSE](../LICENSE)). The web UI uses component patterns inspired by shadcn/ui.

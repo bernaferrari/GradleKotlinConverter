@@ -91,4 +91,20 @@ android {
       "targetCompatibility = JavaVersion.VERSION_17",
     ],
   },
+  {
+    description: "Legacy SDK version methods are modernized to property assignments",
+    input: `android {
+    compileSdkVersion 36
+    defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 36
+    }
+}`,
+    expectedSnippets: [
+      "compileSdk = 36",
+      "minSdk = 24",
+      "targetSdk = 36",
+    ],
+    forbiddenSnippets: ["compileSdkVersion", "minSdkVersion", "targetSdkVersion"],
+  },
 ];

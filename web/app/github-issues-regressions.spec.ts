@@ -113,5 +113,47 @@ extra["appVersionName"] = generateVersionName(appVersionCode)`;
     expect(converter.convert(input)).toBe(expected);
   });
 
+  it("handles multi-argument consumerProguardFiles (no mangling)", () => {
+    const input = `android {
+    consumerProguardFiles "proguard1.pro", "proguard2.pro"
+}`;
+    const expected = `android {
+    consumerProguardFiles("proguard1.pro", "proguard2.pro")
+}`;
+    expect(converter.convert(input)).toBe(expected);
+  });
+
+  it("converts bare legacy SDK versions to modern properties (compileSdk etc.)", () => {
+    const input = `android {
+    compileSdkVersion 35
+    defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 35
+    }
+}`;
+    const expected = `android {
+    compileSdk = 35
+    defaultConfig {
+        minSdk = 24
+        targetSdk = 35
+    }
+}`;
+    expect(converter.convert(input)).toBe(expected);
+  });
+
+  it("converts legacy SDK versions with comments and preserves them", () => {
+    const input = `compileSdkVersion 28 // from rootProject
+targetSdkVersion(34) /* trailing */`;
+    const expected = `compileSdk = 28 // from rootProject
+targetSdk = 34 /* trailing */`;
+    expect(converter.convert(input)).toBe(expected);
+  });
+
+  it("converts already-parenthesized legacy SDK with variables", () => {
+    const input = `compileSdkVersion(rootProject.ext.compileSdk)`;
+    const expected = `compileSdk = rootProject.ext.compileSdk`;
+    expect(converter.convert(input)).toBe(expected);
+  });
+
   it.todo("#41 covers a non-Android jOOQ/Flyway build fixture");
 });

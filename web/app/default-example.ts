@@ -104,8 +104,8 @@ buildTypes {
     }
     debug {
         debuggable true
-        ext.alwaysUpdateBuildId = false
-        ext.enableCrashlytics = false
+        ext.kotlinVersion = '2.1.20'
+        ext.myCustomValue = false
     }
 }
 signingConfigs {

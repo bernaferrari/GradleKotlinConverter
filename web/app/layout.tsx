@@ -32,9 +32,9 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/opengraph-image.png",
-        width: 1200,
-        height: 630,
-        alt: siteConfig.name,
+        width: 1280,
+        height: 640,
+        alt: "Gradle to Kotlin Converter — convert build.gradle (Groovy) to build.gradle.kts",
       },
     ],
   },

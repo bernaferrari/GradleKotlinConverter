@@ -117,6 +117,16 @@ compare_inline \
   $'buildFeatures {\n  renderScript true\n}\n' \
   $'buildFeatures {\n  // TODO(AGP): RenderScript support is deprecated and removed in newer AGP versions; migrate away from RenderScript.\n  renderScript = true\n}\n'
 
+compare_inline \
+  "regression: modernizes bare legacy SDK versions (compileSdkVersion etc.)" \
+  $'android {\n  compileSdkVersion 36\n  defaultConfig {\n    minSdkVersion 24\n    targetSdkVersion(36)\n  }\n}\n' \
+  $'android {\n  compileSdk = 36\n  defaultConfig {\n    minSdk = 24\n    targetSdk = 36\n  }\n}\n'
+
+compare_inline \
+  "regression: handles multi-arg consumerProguardFiles" \
+  $'consumerProguardFiles "a.pro", "b.pro"\n' \
+  $'consumerProguardFiles("a.pro", "b.pro")\n'
+
 echo
 echo "=== Summary: ${passes} passed, ${failures} failed ==="
 
