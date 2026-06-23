@@ -250,8 +250,10 @@ dependencies {
       expect(result).toContain('id("com.google.gms.google-services")');
       expect(result).toContain('id("kotlin-kapt")');
 
-      // Check compileSdkVersion
-      expect(result).toContain("compileSdkVersion(34)");
+      // Check SDK versions are modernized (not legacy *Version methods)
+      expect(result).toContain("compileSdk = 34");
+      expect(result).toContain("minSdk = 27");
+      expect(result).toContain("targetSdk = 34");
 
       // Check dependencies
       expect(result).toContain('implementation("androidx.core:core-ktx:1.6.0")');
@@ -262,8 +264,6 @@ dependencies {
 
       // Check config values
       expect(result).toContain('applicationId = "com.example.app"');
-      expect(result).toContain("minSdkVersion(27)");
-      expect(result).toContain("targetSdkVersion(34)");
       expect(result).toContain("versionCode = 42");
       expect(result).toContain('versionName = "1.5.2"');
     });

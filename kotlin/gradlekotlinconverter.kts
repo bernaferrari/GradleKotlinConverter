@@ -406,12 +406,44 @@ fun String.getExpressionBlock(
                     println("[DP] - range: ${matchResult.range} value: ${matchResult.value}")
                 }
 
-                for (item in rangeStart..stringSize) {
-                    if (this[item] == '{') count += 1 else if (this[item] == '}') count -= 1
-                    if (count == 0) {
-                        rangeEnd = item
-                        break
+                // Find opening { and count braces while skipping strings
+                var inString = false
+                var stringChar = ' '
+                var escaped = false
+                var i = rangeStart
+                while (i < stringSize) {
+                    val ch = this[i]
+                    if (escaped) {
+                        escaped = false
+                        i++
+                        continue
                     }
+                    if (ch == '\\') {
+                        escaped = true
+                        i++
+                        continue
+                    }
+                    if (inString) {
+                        if (ch == stringChar) inString = false
+                        i++
+                        continue
+                    }
+                    if (ch == '"' || ch == '\'') {
+                        inString = true
+                        stringChar = ch
+                        i++
+                        continue
+                    }
+                    if (ch == '{') {
+                        count += 1
+                    } else if (ch == '}') {
+                        count -= 1
+                        if (count == 0) {
+                            rangeEnd = i + 1
+                            break
+                        }
+                    }
+                    i++
                 }
 
                 if (DEBUG) {
@@ -525,21 +557,35 @@ fun String.convertKotlinJvmTarget(): String {
 
 var showWarningGroovyVariables = false
 
-// compileSdkVersion 28
+// compileSdkVersion 28 / compileSdkVersion(28) etc.
 // becomes
-// compileSdkVersion(28)
-fun String.addParentheses(): String {
+// compileSdk = 28
+fun String.convertLegacySdkVersions(): String {
+    val map = mapOf(
+        "compileSdkVersion" to "compileSdk",
+        "minSdkVersion" to "minSdk",
+        "targetSdkVersion" to "targetSdk"
+    )
 
-    val sdkExp = "(compileSdkVersion|minSdkVersion|targetSdkVersion|consumerProguardFiles)\\s*([^\\s]*)(.*)".toRegex() // include any word, as it may be a variable
+    val regex = """\b(compileSdkVersion|minSdkVersion|targetSdkVersion)\s*(?:\(([^)]+)\)|(\S+))""".toRegex()
 
-    return this.replace(sdkExp) {
-        val groups = it.groupValues
-        if (groups.size > 3) {
-            if (groups[2].toIntOrNull() == null) showWarningGroovyVariables = true
-            "${groups[1]}(${groups[2]})${groups[3]}" // group 3 for preserving comments
-        } else {
-            it.value
+    return this.replace(regex) { match ->
+        val oldName = match.groupValues[1]
+        val value = (match.groupValues[2].ifEmpty { match.groupValues[3] }).trim()
+        if (value.toIntOrNull() == null) {
+            showWarningGroovyVariables = true
         }
+        val newName = map[oldName] ?: oldName
+        "$newName = $value"
+    }
+}
+
+// consumerProguardFiles "foo" or consumerProguardFiles "a", "b"
+// becomes consumerProguardFiles("foo") etc. Avoid rewrapping if already ( 
+fun String.addParentheses(): String {
+    val exp = """\bconsumerProguardFiles(?!\s*\()\s+(.+)""".toRegex()
+    return this.replace(exp) {
+        "consumerProguardFiles(${it.groupValues[1].trim()})"
     }
 }
 
@@ -599,9 +645,9 @@ fun String.convertProguardFiles(): String {
 }
 
 
-// ext.enableCrashlytics = false
+// ext.kotlin_version = '2.1.20'
 // becomes
-// extra.set("enableCrashlytics", false)
+// extra["kotlin_version"] = "2.1.20"
 fun String.convertExtToExtra(): String {
 
     // get ext... but not ext { ... }
@@ -618,22 +664,16 @@ fun String.convertExtToExtra(): String {
 // sourceCompatibility = "1.8" or sourceCompatibility JavaVersion.VERSION_1_8
 // becomes
 // sourceCompatibility = JavaVersion.VERSION_1_8
+// More robust: preserve trailing comments, don't mangle on quotes.
 fun String.convertJavaCompatibility(): String {
+    val regex = """(sourceCompatibility|targetCompatibility)\s*(?:=\s*)?["']?([^"'\s;]+)["']?([^\n]*)""".toRegex()
 
-    val compatibilityExp = "(sourceCompatibility|targetCompatibility).*".toRegex()
-
-    return this.replace(compatibilityExp) {
-        val split = it.value.replace("\"]*".toRegex(), "").split(" ")
-
-        if (split.lastOrNull() != null) {
-            if ("JavaVersion" in split.last()) {
-                "${split[0]} = ${split.last()}"
-            } else {
-                "${split[0]} = JavaVersion.VERSION_${split.last().replace(".", "_")}"
-            }
-        } else {
-            it.value
-        }
+    return this.replace(regex) {
+        val key = it.groupValues[1]
+        val value = it.groupValues[2]
+        val trailing = it.groupValues[3]
+        val right = if ("JavaVersion" in value) value else "JavaVersion.VERSION_${value.replace(".", "_")}"
+        "$key = $right$trailing"
     }
 }
 
@@ -945,6 +985,7 @@ fun convertText(input: String): String =
         .convertJCenter()
         .convertFlatDir()
         .convertIncludeBuild()
+        .convertLegacySdkVersions()
         .addParentheses()
         .addEquals()
         .convertJavaCompatibility()
@@ -1004,7 +1045,7 @@ fun writeToFile() {
     val fileIsAlreadyKts = file.path.takeLast(4) == ".kts"
 
     if (fileIsAlreadyKts) {
-        println("\n### ### ### Warning! The script will overrite ${file.path}, since it ends with \".kts\"".red() +
+        println("\n### ### ### Warning! The script will overwrite ${file.path}, since it ends with \".kts\"".red() +
                 "\n### ### ### Gradle might get crazy and all red, so you might want to \"gradle build\"\n".red())
     }
 
@@ -1029,7 +1070,7 @@ if (showWarningGroovyVariables) {
 
 println("""
 Info on manual work:
-  If you have custom flavor implemetation dependencies, use quotes like "myCustomFlavorImplementation"("a.lib")
+  If you have custom flavor implementation dependencies, use quotes like "myCustomFlavorImplementation"("a.lib")
   --- see https://github.com/jnizet/gradle-kotlin-dsl-migration-guide/blob/master/README.adoc#custom-configurations""")
 
 

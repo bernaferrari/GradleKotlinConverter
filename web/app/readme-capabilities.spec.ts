@@ -59,8 +59,8 @@ describe("README conversion capability examples", () => {
     },
     {
       capability: "extra property",
-      input: "ext.enableCrashlytics = false",
-      expected: 'extra["enableCrashlytics"] = false',
+      input: "ext.kotlin_version = '2.1.20'",
+      expected: 'extra["kotlin_version"] = "2.1.20"',
     },
     {
       capability: "parameter colons",

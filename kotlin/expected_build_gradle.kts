@@ -111,7 +111,7 @@ buildTypes {
     named("debug") {
         isDebuggable = true
         extra["alwaysUpdateBuildId"] = false
-        extra["enableCrashlytics"] = false
+        extra["kotlin_version"] = "2.1.20"
     }
 }
 signingConfigs {

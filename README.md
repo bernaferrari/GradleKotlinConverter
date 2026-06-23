@@ -1,253 +1,110 @@
-![Image of GradleKotlinConverter](logo.png)
+[![Image of GradleKotlinConverter](assets/header.png)](https://gradlekotlinconverter.app/)
 
 # Gradle Kotlin DSL Converter
 
-A powerful tool to simplify the migration from Gradle's Groovy DSL to Kotlin DSL for Android projects.
+A powerful tool to simplify the migration from Gradle's Groovy DSL to Kotlin DSL for Android and other Gradle projects.
 
-[![Image of website](web-screenshot.png)](https://gradle-kotlin-converter.vercel.app/)
+[![Image of website](assets/web-screenshot.png)](https://gradlekotlinconverter.app/)
 
-Visit https://gradle-kotlin-converter.vercel.app/ to use the converter.
+Visit https://gradlekotlinconverter.app/ to use the converter.
 
 ## Overview
 
-The Gradle Kotlin DSL Converter is designed to streamline the process of transitioning from Gradle's Groovy DSL to Kotlin DSL in Android Studio. This tool automates many of the repetitive tasks involved in the migration, significantly reducing the time and effort required to update your build scripts.
+This tool helps you migrate Gradle build scripts from Groovy DSL to Kotlin DSL. It automates the repetitive mechanical changes so you can focus on the parts that actually need manual attention.
 
-While it may not produce a perfect conversion in all cases, it serves as an invaluable first step in the migration process, similar to Android Studio's Java to Kotlin converter.
+It works with Android projects as well as pure JVM, Kotlin, and other Gradle builds. Think of it like Android Studio's Java → Kotlin converter — a powerful starting point rather than a perfect one-shot solution.
 
 ## Features
 
-- Converts Groovy-style Gradle scripts to Kotlin DSL format
-- Handles common syntax differences and idiomatic changes
-- Supports both file-based and clipboard-based conversion
-- Addresses numerous edge cases and common migration challenges
+- Converts Groovy Gradle scripts to Kotlin DSL
+- Handles the most common syntax and idiomatic changes
+- Supports Android, JVM, Kotlin, and general Gradle projects
+- Adds helpful migration warnings for deprecated AGP APIs
+- Works great as a first step (like the Java → Kotlin converter)
 
 ## Getting Started
 
 ### Web Interface
 
-Visit our [web-based converter](https://gradle-kotlin-converter.vercel.app/) for an easy-to-use interface that doesn't require any local setup.
+Visit the [online converter](https://gradlekotlinconverter.app/) — no setup required.
 
-### Local Development
-
-To run the converter locally:
+### Local CLI
 
 ```bash
-# Navigate to the web directory
 cd web
-
-# Install dependencies (requires pnpm)
 pnpm install
 
-# Start the development server
-pnpm dev
-
-# Run tests
-pnpm test
-
-# Run tests in watch mode
-pnpm test:watch
-```
-
-The converter will be available at `http://localhost:3000`.
-
-### Command-line usage
-
-The TypeScript converter can also run locally as a CLI after installing dependencies:
-
-```bash
-cd web
-
-# Convert a file and print the result
 pnpm cli build.gradle
-
-# Convert from stdin
-pnpm cli < build.gradle
-
-# Write the converted output to a Kotlin DSL file
 pnpm cli build.gradle > build.gradle.kts
 ```
 
-### Testing strategy
+### Kotlin Script
 
-The TypeScript converter is covered by focused unit tests and full-file golden fixtures.
+```bash
+kotlinc -script kotlin/gradlekotlinconverter.kts build.gradle
+# or
+./kotlin/gradlekotlinconverter.kts build.gradle
+```
 
-- Add focused tests in `web/app/logic.spec.ts` for isolated syntax regressions.
-- Add full-file examples in `web/app/fixtures/golden/` when a conversion depends on several rules interacting. Each `*.gradle` input must have a matching `*.gradle.kts` expected output.
-- Keep known future migration work as explicit `it.todo(...)` cases when the converter should not pretend to support a Gradle or AGP migration yet.
+The Kotlin script has full feature and test parity with the TypeScript version.
 
-### Kotlin script implementation
+### Developing the project
 
-The `kotlin/` directory contains a standalone Kotlin script implementation of the converter. It has been brought to near feature and test parity with the TypeScript version (including byte-exact matching on all golden fixtures). The `web/` version remains the primary and more actively maintained implementation, with additional modern features such as AGP migration warnings.
+```bash
+cd web
+pnpm install
+pnpm test
+```
 
-## Conversion Capabilities
+Tests are a mix of focused unit tests and full-file golden fixtures in `web/app/fixtures/golden/`. The `web/` implementation is the primary one and includes extra features like AGP migration warnings.
 
-The converter handles a wide range of Gradle script elements, including:
+## Supported Transformations
 
-- String delimiter conversion (apostrophes to quotation marks)
-- Variable declaration updates (`def` to `val`)
-- Plugin application syntax
-- Dependency declaration format
-- Repository and Maven configurations
-- SDK version and build type declarations
-- ProGuard file configurations
-- Kotlin-specific dependency declarations
-- And more:
+The converter handles the most common Groovy-to-Kotlin DSL changes. Here are some of the most frequently used transformations:
 
----
+| Description                    | Before                                      | After                                              |
+|--------------------------------|---------------------------------------------|----------------------------------------------------|
+| Strings                        | `'kotlin-android'`                          | `"kotlin-android"`                                 |
+| Variables                      | `def appcompat = "1.0.0"`                   | `val appcompat = "1.0.0"`                          |
+| Apply plugins                  | `apply plugin: "kotlin-kapt"`               | `apply(plugin = "kotlin-kapt")`                    |
+| Dependencies                   | `implementation ":epoxy"`                   | `implementation(":epoxy")`                         |
+| Maven repositories             | `maven { url "https://jitpack.io" }`        | `maven("https://jitpack.io")`                      |
+| SDK versions (legacy)          | `compileSdkVersion 28`                      | `compileSdk = 28`                                  |
+| SDK versions (modern)          | `compileSdk 36`                             | `compileSdk = 36`                                  |
+| Version code / name            | `versionCode 4`                             | `versionCode = 4`                                  |
+| Build types                    | `debuggable true`                           | `isDebuggable = true`                              |
+| ProGuard                       | `proguardFiles getDefault...`               | `setProguardFiles(listOf(getDefault...))`          |
+| Source compatibility           | `sourceCompatibility = "1.8"`               | `sourceCompatibility = JavaVersion.VERSION_1_8`    |
+| Includes                       | `include ":app", ":diffutils"`              | `include(":app", ":diffutils")`                    |
+| Signing configs                | `signingConfigs { debug { ... } }`          | `signingConfigs { register("debug") { ... } }`     |
+| Build types                    | `buildTypes { debug { ... } }`              | `buildTypes { named("debug") { ... } }`            |
+| Kotlin dependencies            | `"org.jetbrains.kotlin:kotlin-stdlib:$v"`   | `kotlin("stdlib")`                                 |
+| Plugin blocks                  | Multiple `apply(plugin = ...)`              | `plugins { id(...) ... }`                          |
+| Extras                         | `ext.kotlin_version = '2.1.20'`             | `extra["kotlin_version"] = "2.1.20"`               |
 
-<table>
-    <th>Description</th>
-    <th>Before</th>
-    <th>After</th>
-    <tr>
-        <td>Replace all ' with "</td>
-        <td>'kotlin-android'</td>
-        <td>"kotlin-android"</td>
-    </tr>
-    <tr>
-        <td>Replace "def " with "val "</td>
-        <td>def appcompat = "1.0.0"</td>
-        <td>val appcompat = "1.0.0"</td>
-    </tr>
-    <tr>
-        <td>Convert plugins</td>
-        <td>apply plugin: "kotlin-kapt"</td>
-        <td>apply(plugin = "kotlin-kapt")</td>
-    </tr>
-    <tr>
-        <td>Add ( ) to dependencies</td>
-        <td>implementation ":epoxy"</td>
-        <td>implementation(":epoxy")</td>
-    </tr>
-    <tr>
-        <td>Convert Maven</td>
-        <td>maven { url "https://jitpack.io" }</td>
-        <td>maven("https://jitpack.io")</td>
-    </tr>
-    <tr>
-        <td>Convert Sdk Version</td>
-        <td>compileSdkVersion 28</td>
-        <td>compileSdkVersion(28)</td>
-    </tr>
-    <tr>
-        <td>Convert Version Code</td>
-        <td>versionCode 4</td>
-        <td>versionCode = 4</td>
-    </tr>
-    <tr>
-        <td>Convert Build Types</td>
-        <td>debuggable true</td>
-        <td>isDebuggable = true</td>
-    </tr>
-    <tr>
-        <td>Convert proguardFiles</td>
-        <td>proguardFiles getDef..., "..."</td>
-        <td>setProguardFiles(listOf(getDef..., "...")</td>
-    </tr>
-    <tr>
-        <td>Convert sourceCompatibility</td>
-        <td>sourceCompatibility = "1.8"</td>
-        <td>sourceCompatibility = JavaVersion.VERSION_1_8</td>
-    </tr>
-    <tr>
-        <td>Convert androidExtensions</td>
-        <td>androidExtensions { experimental = true }</td>
-        <td>androidExtensions { isExperimental = true }</td>
-    </tr>
-    <tr>
-        <td>Convert include</td>
-        <td>include ":app", ":diffutils"</td>
-        <td>include(":app", ":diffutils")</td>
-    </tr>
-    <tr>
-        <td>Convert signingConfigs</td>
-        <td>signingConfigs { debug { ... } }</td>
-        <td>signingConfigs { register("debug") { ... } }</td>
-    </tr>
-    <tr>
-        <td>Convert buildTypes</td>
-        <td>buildTypes { debug { ... } }</td>
-        <td>buildTypes { named("debug") { ... } })</td>
-    </tr>
-    <tr>
-        <td>Convert classpath.exclude</td>
-        <td>configurations.classpath.exclude group: '...lombok'</td>
-        <td>configurations.classpath { exclude(group = "...lombok") }</td>
-    </tr>
-    <tr>
-        <td>Kt dependencies (1/3)</td>
-        <td>"org.jetbrains.kotlin:kotlin-gradle-plugin:$kt_v"</td>
-        <td>kotlin("gradle-plugin", version = "$kt_v")</td>
-    </tr>
-    <tr>
-        <td>Kt dependencies (2/3)</td>
-        <td>"org.jetbrains.kotlin:kotlin-stdlib:$kt_v"</td>
-        <td>kotlin("stdlib")</td>
-    </tr>
-    <tr>
-        <td>Kt dependencies (3/3)</td>
-        <td>"org.jetbrains.kotlin:kotlin-reflect"</td>
-        <td>kotlin("reflect")</td>
-    </tr>
-    <tr>
-        <td>Convert signingConfig</td>
-        <td>signingConfig signingConfigs.release</td>
-        <td>signingConfig = signingConfigs.getByName("release")</td>
-    </tr>
-    <tr>
-        <td>Convert extras</td>
-        <td>ext.enableCrashlytics = false</td>
-        <td>extra.set("enableCrashlytics", false)</td>
-    </tr>
-    <tr>
-        <td>Convert plugins</td>
-        <td>apply(...) apply(...)</td>
-        <td>plugins { id(...) id(...) }</td>
-    </tr>
-    <tr>
-        <td>Convert plugin ids</td>
-        <td>id "io.gitlab.arturbosch.detekt" version "1.0"</td>
-        <td>id("io.gitlab.arturbosch.detekt") version "1.0"</td>
-    </tr>
-    <tr>
-        <td>Convert ":" to " ="</td>
-        <td>testImpl(name: "junit", version: "4.12")</td>
-        <td>testImpl(name = "junit", version = "4.12")</td>
-    </tr>
-</table>
+The converter also supports many modern Gradle patterns, including:
 
-You can find all the details on the source code.
+- Version catalogs, `platform()` dependencies, and `includeBuild`
+- `fileTree(mapOf(...))` and `artifacts { add(...) }`
+- `buildFeatures`, `testOptions`, and Kotlin compiler options
+- Modernization of legacy `*SdkVersion` declarations
+- Helpful AGP migration warnings (variantFilter, RenderScript, density splits, etc.)
 
-The script was made to convert `build.gradle` in `build.gradle.kts`, but it can also help in the migration if you paste something that is not in Kotlin DSL format
-and you want it converted. If you paste something like a `implementation '...'` and want it converted to `implementation("...")`, you are free to call the script on `build.gradle.kts` file and see it working as expected.
+See the [golden fixtures](web/app/fixtures/golden/) and [`web/app/logic.ts`](web/app/logic.ts) for the complete set of rules and realistic before/after examples.
 
-When applying on `build.gradle`, the script will create, for example, `build.gradle.kts`.
-When applying on a file that already ends in `.kts`, the script will overrite the file.
-In that case, please make sure you are using git or have a backup, in case things turn out wrong.
+The tool works on both `.gradle` and `.kts` files. Even if you paste just a dependency line like `implementation '...'`, it will correctly add parentheses and quotes.
 
-## Things it still can't do
+## Limitations
 
-- If you find anything, just tell me.
+The converter is a best-effort tool (similar to Android Studio's Java → Kotlin converter). It will not perfectly handle every case:
+
+- Complex custom Groovy logic, helper methods in buildSrc, or heavy metaprogramming
+- Some `ext { }` blocks containing closures (the tool inserts `// TODO` comments for manual review)
+- Certain legacy or removed AGP/Gradle features that require larger architectural changes (the tool adds `// TODO(AGP)` notes where relevant)
+- Every third-party plugin's custom DSL extensions
+
+Always review the output, run a Gradle sync, and test your build. For tricky cases, the golden fixtures and focused regression tests document current behavior.
 
 ## Issue Tracking
 
 Found a bug? Have an idea for an improvement? Feel free to [add an issue](../../issues).
-
-## License
-
-Copyright 2018 Bernardo Ferrari.
-
-Licensed to the Apache Software Foundation (ASF) under one or more contributor
-license agreements. See the NOTICE file distributed with this work for
-additional information regarding copyright ownership. The ASF licenses this
-file to you under the Apache License, Version 2.0 (the "License"); you may not
-use this file except in compliance with the License. You may obtain a copy of
-the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-License for the specific language governing permissions and limitations under
-the License.

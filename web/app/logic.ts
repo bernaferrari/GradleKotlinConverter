@@ -22,7 +22,7 @@ export class GradleToKtsConverter {
     this.convertMaven,
     this.convertJCenter,
     this.convertFlatDir,
-    this.convertAndroidSdkVersionMethodCalls,
+    this.convertLegacySdkVersions,
     this.addParentheses,
     this.convertFlavorDimensions,
     this.convertUseLibrary,
@@ -66,6 +66,10 @@ export class GradleToKtsConverter {
   }
 
   private replaceAll(str: string, find: string | RegExp, replace: string): string {
+    if (typeof find === "string") {
+      // Escape special regex chars when find is a literal string
+      find = find.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
     return str.replace(new RegExp(find, "g"), replace);
   }
 
@@ -285,28 +289,37 @@ export class GradleToKtsConverter {
     return text.replace(/\bdirs\s+("[^"\n]+"(?:\s*,\s*"[^"\n]+")*)/g, "dirs($1)");
   }
 
-  private convertAndroidSdkVersionMethodCalls(text: string): string {
-    const sdkMethods: Record<string, string> = {
+  private convertLegacySdkVersions(text: string): string {
+    const sdkMap: Record<string, string> = {
       compileSdkVersion: "compileSdk",
       minSdkVersion: "minSdk",
       targetSdkVersion: "targetSdk",
     };
 
-    return text.replace(
-      /\b(compileSdkVersion|minSdkVersion|targetSdkVersion)\(([^)]+)\)/g,
-      (_match, method, value) => {
-        return `${sdkMethods[method]} = ${value.trim()}`;
+    // Convert legacy compileSdkVersion / minSdkVersion / targetSdkVersion (bare or parenthesized)
+    // into the modern property form used in Kotlin DSL + recent AGP.
+    // Examples:
+    //   compileSdkVersion 28  ->  compileSdk = 28
+    //   targetSdkVersion(34)  ->  targetSdk = 34
+    return this.replaceWithCallback(
+      text,
+      /\b(compileSdkVersion|minSdkVersion|targetSdkVersion)\s*(?:\(([^)]+)\)|(\S+))/g,
+      (match) => {
+        const method = match[1];
+        const value = (match[2] || match[3] || "").trim();
+        return `${sdkMap[method]} = ${value}`;
       },
     );
   }
 
   private addParentheses(text: string): string {
-    const sdkExp =
-      /(compileSdkVersion|minSdkVersion|targetSdkVersion|consumerProguardFiles)\s*([^\s]*)(.*)/g;
-    return this.replaceWithCallback(text, sdkExp, (match) => {
-      const [, keyword, value, rest] = match;
-      return `${keyword}(${value})${rest}`;
-    });
+    // consumerProguardFiles "foo.pro"  or  consumerProguardFiles "a", "b"
+    // becomes consumerProguardFiles("foo.pro") or consumerProguardFiles("a", "b")
+    // Legacy SDK version methods are handled earlier by convertLegacySdkVersions.
+    return text.replace(
+      /\bconsumerProguardFiles(?!\s*\()\s+(.+)/g,
+      (_match, args) => `consumerProguardFiles(${args.trim()})`,
+    );
   }
 
   private convertFlavorDimensions(text: string): string {
@@ -359,18 +372,21 @@ export class GradleToKtsConverter {
   }
 
   private convertJavaCompatibility(text: string): string {
-    const compatibilityExp = /(sourceCompatibility|targetCompatibility).*/g;
-    return this.replaceWithCallback(text, compatibilityExp, (match) => {
-      const split = match[0].replace(/"]*/g, "").split(/\s+/);
-      if (split.length > 1) {
-        if (split[split.length - 1].includes("JavaVersion")) {
-          return `${split[0]} = ${split[split.length - 1]}`;
-        } else {
-          return `${split[0]} = JavaVersion.VERSION_${split[split.length - 1].replace(/\./g, "_")}`;
-        }
-      }
-      return match[0];
-    });
+    // Supports:
+    //   sourceCompatibility '1.8'
+    //   targetCompatibility = "17"
+    //   android.compileOptions.sourceCompatibility 1.8
+    //   ... with trailing comments preserved
+    return text.replace(
+      /(?:([\w.]+\.))?(sourceCompatibility|targetCompatibility)\s*(?:=\s*)?["']?([^"'\s;]+)["']?([^\n]*)/g,
+      (_match, receiver = "", key, value, trailing) => {
+        const cleanValue = value.trim();
+        const rightHand = cleanValue.includes("JavaVersion")
+          ? cleanValue
+          : `JavaVersion.VERSION_${cleanValue.replace(/\./g, "_")}`;
+        return `${receiver}${key} = ${rightHand}${trailing}`;
+      },
+    );
   }
 
   private convertCleanTask(text: string): string {
@@ -653,28 +669,81 @@ ${indent}}`;
     if (!matches) return text;
 
     let result = text;
+    let searchFrom = 0;
     for (const match of matches) {
-      const startIndex = result.indexOf(match);
-      let count = 0;
-      let endIndex = startIndex;
-      let foundFirstBrace = false;
+      const startIndex = result.indexOf(match, searchFrom);
+      if (startIndex === -1) continue;
 
+      // Find the first '{' after the keyword match, respecting strings
+      let openBraceIndex = -1;
+      let inString = false;
+      let stringChar = "";
+      let escaped = false;
       for (let i = startIndex; i < result.length; i++) {
-        if (result[i] === "{") {
-          count++;
-          foundFirstBrace = true;
+        const ch = result[i];
+        if (escaped) {
+          escaped = false;
+          continue;
         }
-        if (result[i] === "}") count--;
-        // Only check for end after we've found at least one opening brace
-        if (foundFirstBrace && count === 0) {
-          endIndex = i + 1;
+        if (ch === "\\") {
+          escaped = true;
+          continue;
+        }
+        if (inString) {
+          if (ch === stringChar) inString = false;
+          continue;
+        }
+        if (ch === '"' || ch === "'") {
+          inString = true;
+          stringChar = ch;
+          continue;
+        }
+        if (ch === "{") {
+          openBraceIndex = i;
           break;
+        }
+      }
+      if (openBraceIndex === -1) continue;
+
+      // Now count braces from the opening {, skipping strings
+      let count = 1;
+      inString = false;
+      stringChar = "";
+      escaped = false;
+      let endIndex = result.length;
+      for (let i = openBraceIndex + 1; i < result.length; i++) {
+        const ch = result[i];
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        if (ch === "\\") {
+          escaped = true;
+          continue;
+        }
+        if (inString) {
+          if (ch === stringChar) inString = false;
+          continue;
+        }
+        if (ch === '"' || ch === "'") {
+          inString = true;
+          stringChar = ch;
+          continue;
+        }
+        if (ch === "{") count++;
+        else if (ch === "}") {
+          count--;
+          if (count === 0) {
+            endIndex = i + 1;
+            break;
+          }
         }
       }
 
       const block = result.substring(startIndex, endIndex);
       const convertedBlock = modifyResult(block);
       result = result.substring(0, startIndex) + convertedBlock + result.substring(endIndex);
+      searchFrom = startIndex + convertedBlock.length;
     }
 
     return result;
