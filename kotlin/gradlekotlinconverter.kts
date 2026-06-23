@@ -614,19 +614,22 @@ fun String.addEquals(): String {
     val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary|kotlinCompilerExtensionVersion|isCoreLibraryDesugaringEnabled"
     val databinding = "dataBinding|viewBinding"
     val defaultConfig = "applicationId|minSdk|targetSdk|versionCode|versionName|testInstrumentationRunner|namespace"
-    val negativeLookAhead = "(?!\\{)[^Version\\s]" // Don't want '{' as next word character
 
-    val versionExp = """($compileSdk|$defaultConfig|$signing|$other|$databinding)\s*${negativeLookAhead}.*""".toRegex()
+    // Require the keyword at the logical start of a line (after optional whitespace).
+    // This stops matching when the keyword only appears inside a string *value*
+    // on the RHS of an assignment, e.g. archivesBaseName = "random-app-$versionName".
+    // The TypeScript version has used equivalent line-start anchoring in addEquals.
+    val keywords = "$compileSdk|$defaultConfig|$signing|$other|$databinding"
+    val versionExp = """(^|\n)([\t ]*)([\w.]+\.)?($keywords)\s+(?!=|->)([^\s{].*)""".toRegex()
 
     return this.replace(versionExp) {
-        val split = it.value.split(" ")
-
-        // if there is more than one whitespace, the last().toIntOrNull() will find.
-        if (split.lastOrNull { it.isNotBlank() } != null) {
-            "${split[0]} = ${split.last()}"
-        } else {
-            it.value
-        }
+        val groups = it.groupValues
+        val lineStart = groups[1]
+        val indent = groups[2]
+        val receiver = groups[3]
+        val key = groups[4]
+        val value = groups[5]
+        "$lineStart$indent$receiver$key = $value"
     }
 }
 

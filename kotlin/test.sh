@@ -127,6 +127,11 @@ compare_inline \
   $'consumerProguardFiles "a.pro", "b.pro"\n' \
   $'consumerProguardFiles("a.pro", "b.pro")\n'
 
+compare_inline \
+  "regression: #22 leaves assignments containing string interpolation intact" \
+  $'archivesBaseName = "random-app-$versionName"\n' \
+  $'archivesBaseName = "random-app-$versionName"\n'
+
 echo
 echo "=== Summary: ${passes} passed, ${failures} failed ==="
 

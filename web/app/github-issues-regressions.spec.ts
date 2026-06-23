@@ -66,6 +66,15 @@ plugins {
     expect(converter.convert(input)).toBe(input);
   });
 
+  it("does not rewrite version* keywords inside string literals (multi-line or same-line)", () => {
+    // addEquals protection
+    expect(converter.convert(`foo = """\nversionCode 5\nbar"""`)).toBe(`foo = """\nversionCode 5\nbar"""`);
+    expect(converter.convert(`x = """\n    versionName "1.0"\n"""`)).toBe(`x = """\n    versionName "1.0"\n"""`);
+    // convertLegacySdkVersions protection (even same-line inside quotes)
+    expect(converter.convert(`desc = "uses compileSdkVersion 30"`)).toBe(`desc = "uses compileSdkVersion 30"`);
+    expect(converter.convert(`desc = """\nminSdkVersion 21\n"""`)).toBe(`desc = """\nminSdkVersion 21\n"""`);
+  });
+
   it("#17 converts developmentOnly and runtimeOnly dependencies", () => {
     const input = `dependencies {
     developmentOnly "net.java.dev.jna:jna:5.5.0"

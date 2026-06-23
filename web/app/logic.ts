@@ -81,6 +81,85 @@ export class GradleToKtsConverter {
     return str.replace(regex, (match, ...args) => callback([match, ...args]));
   }
 
+  /**
+   * Returns true if the character at `pos` is inside a string literal
+   * (handles ', ", ''', """).
+   * Used to avoid mangling code-like text that appears inside string values.
+   */
+  private isInsideString(text: string, pos: number): boolean {
+    let i = 0;
+    let inString = false;
+    let delim = "";
+    let dlen = 1;
+
+    while (i < pos) {
+      if (inString) {
+        if (text.startsWith(delim, i)) {
+          inString = false;
+          i += dlen;
+          continue;
+        }
+        if (dlen === 1 && text[i] === "\\") {
+          i += 2;
+          continue;
+        }
+        i++;
+        continue;
+      }
+      // Prefer triple-quoted delimiters
+      if (i + 2 < text.length) {
+        const tri = text.slice(i, i + 3);
+        if (tri === '"""' || tri === "'''") {
+          delim = tri;
+          dlen = 3;
+          inString = true;
+          i += 3;
+          continue;
+        }
+      }
+      const ch = text[i];
+      if (ch === '"' || ch === "'") {
+        delim = ch;
+        dlen = 1;
+        inString = true;
+        i++;
+        continue;
+      }
+      i++;
+    }
+    return inString;
+  }
+
+  /**
+   * Like replaceWithCallback, but skips matches whose starting position
+   * is inside a string literal. Prevents transforming fake "assignments"
+   * that live inside version strings, descriptions, etc.
+   */
+  private replaceOutsideStrings(
+    text: string,
+    regex: RegExp,
+    callback: (match: RegExpMatchArray) => string,
+  ): string {
+    // Ensure we can iterate all matches
+    const flags = regex.flags.includes("g") ? regex.flags : regex.flags + "g";
+    const re = new RegExp(regex.source, flags);
+    let result = "";
+    let last = 0;
+    for (const match of text.matchAll(re)) {
+      const start = match.index!;
+      const fullLen = match[0].length;
+      if (this.isInsideString(text, start)) {
+        result += text.slice(last, start + fullLen);
+      } else {
+        result += text.slice(last, start);
+        result += callback(match as RegExpMatchArray);
+      }
+      last = start + fullLen;
+    }
+    result += text.slice(last);
+    return result;
+  }
+
   private replaceApostrophes(text: string): string {
     return this.replaceAll(text, "'", '"');
   }
@@ -301,7 +380,7 @@ export class GradleToKtsConverter {
     // Examples:
     //   compileSdkVersion 28  ->  compileSdk = 28
     //   targetSdkVersion(34)  ->  targetSdk = 34
-    return this.replaceWithCallback(
+    return this.replaceOutsideStrings(
       text,
       /\b(compileSdkVersion|minSdkVersion|targetSdkVersion)\s*(?:\(([^)]+)\)|(\S+))/g,
       (match) => {
@@ -365,7 +444,7 @@ export class GradleToKtsConverter {
       "g",
     );
 
-    return this.replaceWithCallback(text, versionExp, (match) => {
+    return this.replaceOutsideStrings(text, versionExp, (match) => {
       const [, lineStart, indent, receiver = "", key, value] = match;
       return `${lineStart}${indent}${receiver}${key} = ${value}`;
     });
