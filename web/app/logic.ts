@@ -19,6 +19,7 @@ export class GradleToKtsConverter {
     this.convertCompileToImplementation,
     this.replaceCoreLibraryDesugaringEnabled,
     this.convertDependencies,
+    this.convertCustomConfigurationDependencies,
     this.convertMaven,
     this.convertJCenter,
     this.convertFlatDir,
@@ -41,6 +42,7 @@ export class GradleToKtsConverter {
     this.convertSigningConfigs,
     this.convertVersionCatalogs,
     this.convertArtifacts,
+    this.convertConfigurations,
     this.convertExcludeClasspath,
     this.convertExcludeParameters,
     this.convertExcludeModules,
@@ -82,36 +84,71 @@ export class GradleToKtsConverter {
   }
 
   /**
-   * Returns true if the character at `pos` is inside a string literal
-   * (handles ', ", ''', """).
-   * Used to avoid mangling code-like text that appears inside string values.
+   * Returns true if the position is inside a string or comment.
+   * This is the central guard so we never rewrite things that only look like
+   * Gradle DSL because they appear in a string literal or a comment.
+   *
+   * Handles:
+   * - Single, double, triple single, triple double quotes (with basic escapes)
+   * - // line comments (to end of line)
+   * - /* block comments (non-nesting)
    */
-  private isInsideString(text: string, pos: number): boolean {
+  private isInsideStringOrComment(text: string, pos: number): boolean {
     let i = 0;
     let inString = false;
-    let delim = "";
-    let dlen = 1;
+    let stringDelim = "";
+    let stringLen = 1;
+    let inBlockComment = false;
+    let inLineComment = false;
 
     while (i < pos) {
-      if (inString) {
-        if (text.startsWith(delim, i)) {
-          inString = false;
-          i += dlen;
-          continue;
-        }
-        if (dlen === 1 && text[i] === "\\") {
+      if (inLineComment) {
+        if (text[i] === "\n") inLineComment = false;
+        i++;
+        continue;
+      }
+      if (inBlockComment) {
+        if (text[i] === "*" && text[i + 1] === "/") {
+          inBlockComment = false;
           i += 2;
           continue;
         }
         i++;
         continue;
       }
-      // Prefer triple-quoted delimiters
+      if (inString) {
+        if (text.startsWith(stringDelim, i)) {
+          inString = false;
+          i += stringLen;
+          continue;
+        }
+        if (stringLen === 1 && text[i] === "\\") {
+          i += 2;
+          continue;
+        }
+        i++;
+        continue;
+      }
+
+      // Check for block comment start
+      if (text[i] === "/" && text[i + 1] === "*") {
+        inBlockComment = true;
+        i += 2;
+        continue;
+      }
+      // Check for line comment start
+      if (text[i] === "/" && text[i + 1] === "/") {
+        inLineComment = true;
+        i += 2;
+        continue;
+      }
+
+      // Check for string start (prefer triple quotes)
       if (i + 2 < text.length) {
         const tri = text.slice(i, i + 3);
         if (tri === '"""' || tri === "'''") {
-          delim = tri;
-          dlen = 3;
+          stringDelim = tri;
+          stringLen = 3;
           inString = true;
           i += 3;
           continue;
@@ -119,28 +156,27 @@ export class GradleToKtsConverter {
       }
       const ch = text[i];
       if (ch === '"' || ch === "'") {
-        delim = ch;
-        dlen = 1;
+        stringDelim = ch;
+        stringLen = 1;
         inString = true;
         i++;
         continue;
       }
       i++;
     }
-    return inString;
+
+    return inString || inBlockComment || inLineComment;
   }
 
   /**
-   * Like replaceWithCallback, but skips matches whose starting position
-   * is inside a string literal. Prevents transforming fake "assignments"
-   * that live inside version strings, descriptions, etc.
+   * Safe replace that only transforms matches starting in actual code
+   * (outside strings and comments).
    */
-  private replaceOutsideStrings(
+  private replaceOutsideCode(
     text: string,
     regex: RegExp,
     callback: (match: RegExpMatchArray) => string,
   ): string {
-    // Ensure we can iterate all matches
     const flags = regex.flags.includes("g") ? regex.flags : regex.flags + "g";
     const re = new RegExp(regex.source, flags);
     let result = "";
@@ -148,11 +184,11 @@ export class GradleToKtsConverter {
     for (const match of text.matchAll(re)) {
       const start = match.index!;
       const fullLen = match[0].length;
-      if (this.isInsideString(text, start)) {
+      if (this.isInsideStringOrComment(text, start)) {
         result += text.slice(last, start + fullLen);
       } else {
         result += text.slice(last, start);
-        result += callback(match as RegExpMatchArray);
+        result += callback(match);
       }
       last = start + fullLen;
     }
@@ -302,21 +338,18 @@ export class GradleToKtsConverter {
     const customKeywords = "modImplementation|modApi|modCompileOnly|modRuntimeOnly";
     const gradleKeywords = `(${testKeywords}|${customKeywords}|implementation|api|annotationProcessor|classpath|kaptTest|kaptAndroidTest|kapt|check|ksp|coreLibraryDesugaring|detektPlugins|lintPublish|lintCheck)`;
 
-    // Match dependency keywords only at the start of a line or after whitespace,
-    // and not when they're inside quotes or after a hyphen (like in "kotlin-kapt")
+    // Original proven pattern + outside guard for comments/strings
     const validKeywords = new RegExp(
       `(?:^|\\s)(?!${gradleKeywords}\\s*(\\{|"\\)|\\.))(?<![-"])${gradleKeywords}\\b(?![-"]).*`,
       "gm",
     );
 
-    return this.replaceWithCallback(text, validKeywords, (match) => {
-      // Preserve leading whitespace
+    return this.replaceOutsideCode(text, validKeywords, (match) => {
       const leadingWhitespace = match[0].match(/^\s*/)?.[0] || "";
       const trimmedMatch = match[0].trim();
 
       if (trimmedMatch.match(/\)(\s*)\{/)) return match[0];
 
-      // Skip lines with assignment operators like +=, -=, etc.
       if (
         trimmedMatch.includes(" += ") ||
         trimmedMatch.includes(" -= ") ||
@@ -336,6 +369,22 @@ export class GradleToKtsConverter {
       } else {
         return `${leadingWhitespace}${gradleKeyword}${isolated}${comment}`;
       }
+    });
+  }
+
+  private convertCustomConfigurationDependencies(text: string): string {
+    // Inside dependencies { myCustom "group:art:1" } turn into "myCustom"("group:art:1")
+    // This is the recommended/safe form in Kotlin DSL for configurations not added as extension methods.
+    const depsBlock = /dependencies\s*\{/g;
+    return this.getExpressionBlock(text, depsBlock, (block) => {
+      return block.replace(
+        /(^|\n)(\s*)(\w+)\s+("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,
+        (m, lineStart, indent, configName, quoted) => {
+          const known = /^(implementation|api|testImplementation|androidTestImplementation|debugImplementation|releaseImplementation|compileOnly|testCompileOnly|runtimeOnly|testRuntimeOnly|androidTestRuntimeOnly|debugRuntimeOnly|releaseRuntimeOnly|developmentOnly|classpath|kapt|kaptTest|kaptAndroidTest|annotationProcessor|ksp|coreLibraryDesugaring|detektPlugins|lintPublish|lintCheck|modImplementation|modApi)$/;
+          if (known.test(configName) || configName === "dependencies") return m;
+          return `${lineStart}${indent}"${configName}"(${quoted})`;
+        },
+      );
     });
   }
 
@@ -380,7 +429,7 @@ export class GradleToKtsConverter {
     // Examples:
     //   compileSdkVersion 28  ->  compileSdk = 28
     //   targetSdkVersion(34)  ->  targetSdk = 34
-    return this.replaceOutsideStrings(
+    return this.replaceOutsideCode(
       text,
       /\b(compileSdkVersion|minSdkVersion|targetSdkVersion)\s*(?:\(([^)]+)\)|(\S+))/g,
       (match) => {
@@ -444,7 +493,7 @@ export class GradleToKtsConverter {
       "g",
     );
 
-    return this.replaceOutsideStrings(text, versionExp, (match) => {
+    return this.replaceOutsideCode(text, versionExp, (match) => {
       const [, lineStart, indent, receiver = "", key, value] = match;
       return `${lineStart}${indent}${receiver}${key} = ${value}`;
     });
@@ -650,10 +699,6 @@ export class GradleToKtsConverter {
   private replaceColonWithEquals(text: string): string {
     // This function converts parameter colons to equals signs (e.g., name: "value" -> name = "value"),
     // but must avoid converting colons inside quoted strings (like dependency coordinates "org:artifact:version")
-
-    // Use a regex that matches parameter-style colons but not those inside strings
-    // Match word characters followed by optional whitespace, then colon, then optional whitespace
-    // But only when followed by a quote (to ensure it's a parameter, not part of a string)
     return text.replace(/\b(\w+)\s*:\s*(?=["'])/g, "$1 = ");
   }
 
@@ -666,7 +711,11 @@ export class GradleToKtsConverter {
   }
 
   private convertFlavorDimensionProperty(text: string): string {
-    return text.replace(/\bdimension\s+("[^"]+")/g, "dimension = $1");
+    return this.replaceOutsideCode(
+      text,
+      /\bdimension\s+("[^"]+")/g,
+      (m) => `dimension = ${m[1]}`,
+    );
   }
 
   private convertSourceSets(text: string): string {
@@ -716,6 +765,28 @@ ${indent}}`;
         (match, lineStart, indent, configName, taskName, trailing) => {
           if (configName === "artifacts") return match;
           return `${lineStart}${indent}add("${configName}", ${taskName})${trailing}`;
+        },
+      );
+    });
+  }
+
+  private convertConfigurations(text: string): string {
+    // configurations { myConf }  ->  configurations { create("myConf") }
+    // configurations { myConf { ... } } -> configurations { create("myConf") { ... } }
+    // We are conservative: skip names that are commonly used inside plugin DSLs
+    // that happen to use a nested "configurations { ... }" structure (e.g. jOOQ plugin).
+    const nonConfigNames = new Set([
+      "main", "test", "integrationTest",
+      "generationTool", "jdbc", "generator", "database", "target", "logging",
+    ]);
+    const regex = /configurations\s*\{/g;
+    return this.getExpressionBlock(text, regex, (substring) => {
+      return substring.replace(
+        /(^|\n)(\s*)(\w+)(\s*(?:\{|$))/gm,
+        (m, lineStart, indent, name, rest) => {
+          if (["configurations", "create", "register", "named", "getByName"].includes(name)) return m;
+          if (nonConfigNames.has(name)) return m;
+          return `${lineStart}${indent}create("${name}")${rest}`;
         },
       );
     });
