@@ -270,37 +270,93 @@ fun String.convertDependencies(): String {
     val customKeywords = "modImplementation|modApi|modCompileOnly|modRuntimeOnly"
     val gradleKeywords = "($testKeywords|$customKeywords|implementation|api|annotationProcessor|classpath|kaptTest|kaptAndroidTest|kapt|check|ksp|coreLibraryDesugaring|detektPlugins|lintPublish|lintCheck)".toRegex()
 
-    // Match only at start of line or after whitespace, not inside strings (preceded by "), not after -, word boundary.
-    // Also ignore when keyword is followed by { or ") or . (config blocks, already converted, or dotted access)
-    val validKeywords = "(?:^|\\s)(?!${gradleKeywords.pattern}\\s*(\\{|\"\\)|\\.))(?<![-\"])\\b${gradleKeywords.pattern}\\b(?![-\"]).*".toRegex()
+    // Use replaceOutsideCode so we never touch keywords inside strings or comments.
+    val depPattern = "(^|\\n)([ \\t]*)(?!${gradleKeywords.pattern}\\s*(\\{|\"\\)|\\.))\\b${gradleKeywords.pattern}\\b(?![-\"]).*".toRegex()
 
-    return this.replace(validKeywords) { substring ->
-        // Preserve leading whitespace for correct re-insertion
-        val leadingWs = substring.value.takeWhile { it.isWhitespace() }
-        val trimmed = substring.value.trim()
+    return this.replaceOutsideCode(depPattern) { m ->
+        val full = m.value
+        val lineDelim = m.groupValues[1]  // ^ or \n
+        val leadingWs = m.groupValues[2]
+        val trimmed = full.trim()
 
-        // Bypass already parenthesized with block: foo("..") { ... }
-        if (trimmed.contains("""\)(\s*)\{""".toRegex())) return@replace substring.value
-
-        // Skip assignment lines like foo += ...
+        if (trimmed.contains("""\)(\s*)\{""".toRegex())) return@replaceOutsideCode full
         if (trimmed.contains(" += ") || trimmed.contains(" -= ") || trimmed.contains(" *= ") || trimmed.contains(" /= ")) {
-            return@replace substring.value
+            return@replaceOutsideCode full
         }
 
-        // retrieve the comment, if any
         val comment = "\\s*\\/\\/.*".toRegex().find(trimmed)?.value ?: ""
-        val processed = trimmed.replace(comment, "")
+        val processed = if (comment.isNotEmpty()) trimmed.removeSuffix(comment).trimEnd() else trimmed
 
-        val gradleKeyword = gradleKeywords.find(processed)?.value ?: return@replace substring.value
+        val gradleKeyword = gradleKeywords.find(processed)?.value ?: return@replaceOutsideCode full
+        val isolated = processed.removePrefix(gradleKeyword).trim()
 
-        val isolated = processed.replaceFirst(gradleKeywords, "").trim()
-
-        val result = if (isolated != "" && (isolated.firstOrNull() != '(' || isolated.trimEnd().lastOrNull() != ')')) {
-            "$gradleKeyword($isolated)$comment"
+        val transformed = if (isolated.isNotEmpty() && !isolated.startsWith("(")) {
+            "$gradleKeyword($isolated)"
         } else {
-            "$gradleKeyword$isolated$comment"
+            "$gradleKeyword$isolated"
         }
-        leadingWs + result
+        lineDelim + leadingWs + transformed + comment
+    }
+    // Final normalization: make sure known dependency keywords followed by a quoted coordinate are wrapped.
+    // This ensures clean output and parity with the TypeScript implementation.
+    .replace(Regex("\\b${gradleKeywords.pattern} ((\"[^\"]+\"|'[^']+'))")) { m ->
+        m.groupValues[1] + "(" + m.groupValues[2] + ")"
+    }
+}
+
+// Inside dependencies { myCustom "g:a:v" } -> "myCustom"("g:a:v")
+// Safe form for custom configuration names in Kotlin DSL.
+fun String.convertCustomConfigurationDependencies(): String {
+    val regex = "dependencies\\s*\\{".toRegex()
+    return this.getExpressionBlock(regex) { substring ->
+        substring.replace(
+            Regex("(^|\\n)(\\s*)(\\w+)\\s+(\"[^\"]*\"|'[^']*')", RegexOption.MULTILINE)
+        ) { m ->
+            val lineStart = m.groupValues[1]
+            val indent = m.groupValues[2]
+            val name = m.groupValues[3]
+            val quoted = m.groupValues[4]
+            val known = listOf(
+                "implementation", "api", "testImplementation", "androidTestImplementation",
+                "debugImplementation", "releaseImplementation", "compileOnly", "testCompileOnly",
+                "runtimeOnly", "testRuntimeOnly", "androidTestRuntimeOnly", "debugRuntimeOnly",
+                "releaseRuntimeOnly", "developmentOnly", "classpath", "kapt", "kaptTest",
+                "kaptAndroidTest", "annotationProcessor", "ksp", "coreLibraryDesugaring",
+                "detektPlugins", "lintPublish", "lintCheck", "modImplementation", "modApi"
+            )
+            if (known.contains(name) || name == "dependencies") {
+                m.value
+            } else {
+                "$lineStart$indent\"$name\"($quoted)"
+            }
+        }
+    }
+}
+
+// configurations { myConf } -> configurations { create("myConf") }
+// configurations { myConf { ... } } -> configurations { create("myConf") { ... } }
+// Conservative: avoid touching names that appear in plugin-internal "configurations" blocks (e.g. jooq).
+fun String.convertConfigurations(): String {
+    val regex = "configurations\\s*\\{".toRegex()
+    val nonConfigNames = setOf(
+        "configurations", "create", "register", "named", "getByName",
+        "main", "test", "integrationTest",
+        "generationTool", "jdbc", "generator", "database", "target", "logging"
+    )
+    return this.getExpressionBlock(regex) { substring ->
+        substring.replace(
+            Regex("(^|\\n)([ \\t]*)(\\w+)((?:\\s*\\{)|(?:\\s*$))", RegexOption.MULTILINE)
+        ) { m ->
+            val lineStart = m.groupValues[1]
+            val indent = m.groupValues[2]
+            val name = m.groupValues[3]
+            val rest = m.groupValues[4]
+            if (nonConfigNames.contains(name)) {
+                m.value
+            } else {
+                "$lineStart${indent}create(\"$name\")$rest"
+            }
+        }
     }
 }
 
@@ -483,17 +539,111 @@ fun String.convertMaven(): String {
     return result
 }
 
+/**
+ * Returns true if the position is inside a string literal or a comment.
+ * Central guard used by safe replacement functions.
+ */
+fun String.isInsideStringOrComment(pos: Int): Boolean {
+    var i = 0
+    var inString = false
+    var stringChar = ' '
+    var stringLen = 1
+    var inBlockComment = false
+    var inLineComment = false
+
+    while (i < pos) {
+        if (inLineComment) {
+            if (this[i] == '\n') inLineComment = false
+            i++
+            continue
+        }
+        if (inBlockComment) {
+            if (this[i] == '*' && i + 1 < length && this[i + 1] == '/') {
+                inBlockComment = false
+                i += 2
+                continue
+            }
+            i++
+            continue
+        }
+        if (inString) {
+            if (i + stringLen - 1 < length && this.substring(i, i + stringLen) == stringChar.toString().repeat(stringLen)) {
+                inString = false
+                i += stringLen
+                continue
+            }
+            if (stringLen == 1 && this[i] == '\\') {
+                i += 2
+                continue
+            }
+            i++
+            continue
+        }
+
+        // block comment
+        if (this[i] == '/' && i + 1 < length && this[i + 1] == '*') {
+            inBlockComment = true
+            i += 2
+            continue
+        }
+        // line comment
+        if (this[i] == '/' && i + 1 < length && this[i + 1] == '/') {
+            inLineComment = true
+            i += 2
+            continue
+        }
+
+        // triple quotes first
+        if (i + 2 < length) {
+            val tri = this.substring(i, i + 3)
+            if (tri == "\"\"\"" || tri == "'''") {
+                stringChar = tri[0]
+                stringLen = 3
+                inString = true
+                i += 3
+                continue
+            }
+        }
+        val ch = this[i]
+        if (ch == '"' || ch == '\'') {
+            stringChar = ch
+            stringLen = 1
+            inString = true
+            i++
+            continue
+        }
+        i++
+    }
+    // If querying exactly at a \n that terminates a line comment, the following content (match starting here) is outside.
+    if (pos < length && this[pos] == '\n' && inLineComment) {
+        inLineComment = false
+    }
+    return inString || inBlockComment || inLineComment
+}
+
+/**
+ * Replaces using the regex, but only calls transform for matches that start
+ * outside strings and comments. Clean and consistent.
+ */
+fun String.replaceOutsideCode(regex: Regex, transform: (MatchResult) -> String): String {
+    return this.replace(regex) { m ->
+        if (this.isInsideStringOrComment(m.range.first)) m.value else transform(m)
+    }
+}
+
 // jcenter() -> mavenCentral()
 fun String.convertJCenter(): String = this.replace("""\bjcenter\(\)""".toRegex(), "mavenCentral()")
 
 // flatDir { dirs "libs" } etc
 fun String.convertFlatDir(): String {
-    return this.replace("""\bdirs\s+("[^"\n]+"(?:\s*,\s*"[^"\n]+")*)""".toRegex(), "dirs($1)")
+    return this.replaceOutsideCode("""\bdirs\s+("[^"\n]+"(?:\s*,\s*"[^"\n]+")*)""".toRegex()) {
+        "dirs(${it.groupValues[1]})"
+    }
 }
 
 // includeBuild "path" -> includeBuild("path")
 fun String.convertIncludeBuild(): String {
-    return this.replace("""(^|\n)([\t ]*)includeBuild\s+("[^"]+")""".toRegex()) { m ->
+    return this.replaceOutsideCode("""(^|\n)([\t ]*)includeBuild\s+("[^"]+")""".toRegex()) { m ->
         "${m.groupValues[1]}${m.groupValues[2]}includeBuild(${m.groupValues[3]})"
     }
 }
@@ -569,7 +719,7 @@ fun String.convertLegacySdkVersions(): String {
 
     val regex = """\b(compileSdkVersion|minSdkVersion|targetSdkVersion)\s*(?:\(([^)]+)\)|(\S+))""".toRegex()
 
-    return this.replace(regex) { match ->
+    return this.replaceOutsideCode(regex) { match ->
         val oldName = match.groupValues[1]
         val value = (match.groupValues[2].ifEmpty { match.groupValues[3] }).trim()
         if (value.toIntOrNull() == null) {
@@ -584,7 +734,7 @@ fun String.convertLegacySdkVersions(): String {
 // becomes consumerProguardFiles("foo") etc. Avoid rewrapping if already ( 
 fun String.addParentheses(): String {
     val exp = """\bconsumerProguardFiles(?!\s*\()\s+(.+)""".toRegex()
-    return this.replace(exp) {
+    return this.replaceOutsideCode(exp) {
         "consumerProguardFiles(${it.groupValues[1].trim()})"
     }
 }
@@ -608,21 +758,17 @@ fun String.addParenthesisToId(): String {
 // becomes
 // versionCode = 4
 fun String.addEquals(): String {
-
     val compileSdk = "compileSdk"
     val signing = "keyAlias|keyPassword|storeFile|storePassword"
     val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary|kotlinCompilerExtensionVersion|isCoreLibraryDesugaringEnabled"
     val databinding = "dataBinding|viewBinding"
     val defaultConfig = "applicationId|minSdk|targetSdk|versionCode|versionName|testInstrumentationRunner|namespace"
 
-    // Require the keyword at the logical start of a line (after optional whitespace).
-    // This stops matching when the keyword only appears inside a string *value*
-    // on the RHS of an assignment, e.g. archivesBaseName = "random-app-$versionName".
-    // The TypeScript version has used equivalent line-start anchoring in addEquals.
     val keywords = "$compileSdk|$defaultConfig|$signing|$other|$databinding"
+    // Simpler regex; replaceOutsideCode guarantees we only touch real code positions.
     val versionExp = """(^|\n)([\t ]*)([\w.]+\.)?($keywords)\s+(?!=|->)([^\s{].*)""".toRegex()
 
-    return this.replace(versionExp) {
+    return this.replaceOutsideCode(versionExp) {
         val groups = it.groupValues
         val lineStart = groups[1]
         val indent = groups[2]
@@ -984,6 +1130,7 @@ fun convertText(input: String): String =
         .convertCompileToImplementation()
         .replaceCoreLibraryDesugaringEnabled()
         .convertDependencies()
+        .convertCustomConfigurationDependencies()
         .convertMaven()
         .convertJCenter()
         .convertFlatDir()
@@ -1003,6 +1150,7 @@ fun convertText(input: String): String =
         .convertSourceSets()
         .convertSourceSetsAddSrcDirs()
         .convertSigningConfigs()
+        .convertConfigurations()
         .convertExcludeClasspath()
         .convertExcludeParameters()
         .convertExcludeModules()

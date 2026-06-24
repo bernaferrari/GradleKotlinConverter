@@ -1,4 +1,4 @@
-[![Image of GradleKotlinConverter](assets/header.png)](https://gradlekotlinconverter.app/)
+[![Image of GradleKotlinConverter](assets/opengraph-image.png)](https://gradlekotlinconverter.app/)
 
 # Gradle Kotlin DSL Converter
 
