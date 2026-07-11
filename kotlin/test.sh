@@ -166,6 +166,11 @@ compare_inline \
   $'dependsOn listOf("clean", "build")\n'
 
 compare_inline \
+  "bug3h: spaced single-variable method args become listOf" \
+  $'dependsOn [clean]\nfrom [generatedDir]\n' \
+  $'dependsOn listOf(clean)\nfrom listOf(generatedDir)\n'
+
+compare_inline \
   "bug4: ternary false-branch colon is preserved" \
   $'def name = isCi ? ciName : "local"\n' \
   $'val name = isCi ? ciName : "local"\n'

@@ -124,6 +124,13 @@ def b = matrix[i][j]`);
     expect(result).toContain('listOf("src/main/kotlin")');
   });
 
+  it("3h: spaced single-variable method args still convert to listOf", () => {
+    const result = converter.convert(`dependsOn [clean]
+from [generatedDir]`);
+    expect(result).toContain("dependsOn listOf(clean)");
+    expect(result).toContain("from listOf(generatedDir)");
+  });
+
   it("4: ternary false-branch colon is not rewritten to =", () => {
     const input = 'def name = isCi ? ciName : "local"';
     const result = converter.convert(input);
@@ -263,5 +270,16 @@ ext {
     const result = converter.convert(input);
     expect(result).toContain('extra["foo"] = 1');
     expect(result).not.toContain("TODO: manually convert ext block line: ext {");
+  });
+
+  it("10b: mid-file ext { } keeps its separating newline", () => {
+    const input = `android {
+}
+ext {
+    foo = 1
+}`;
+    const result = converter.convert(input);
+    expect(result).toContain('}\nextra["foo"] = 1');
+    expect(result).not.toContain('}extra["foo"] = 1');
   });
 });

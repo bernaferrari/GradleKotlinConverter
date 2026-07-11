@@ -262,8 +262,9 @@ export class GradleToKtsConverter {
   private convertArrayExpression(text: string): string {
     // Convert list literals [a, b] → listOf(a, b), but preserve array/map indexing
     // like versionCodes[abiName], versionCodes [abiName], arr[0], get()[i], matrix[i][j].
-    // Spaced forms after identifiers (dependsOn ["a", "b"]) are list args unless the
-    // bracket content looks like a single index expression.
+    // Spaced forms at the start of an expression (dependsOn [clean]) are method-call
+    // list args. Preserve index-like contents only when the receiver itself is already
+    // part of a larger expression (def code = versionCodes [abiName]).
     return text.replace(/\[([^\]]*?)\]/g, (full, content, offset: number) => {
       if (this.isInsideStringOrComment(text, offset)) {
         return full;
@@ -289,8 +290,15 @@ export class GradleToKtsConverter {
           return full;
         }
         if (/[\w]/.test(text[i]) && this.looksLikeIndexExpression(trimmed)) {
-          // versionCodes [abiName] — single index-like content after identifier
-          return full;
+          let receiverStart = i;
+          while (receiverStart >= 0 && /[\w.]/.test(text[receiverStart])) receiverStart--;
+          const lineStart = text.lastIndexOf("\n", receiverStart) + 1;
+          const expressionPrefix = text.slice(lineStart, receiverStart + 1).trim();
+          if (expressionPrefix) {
+            // def code = versionCodes [abiName] — receiver is inside an expression
+            return full;
+          }
+          // dependsOn [clean] / from [generatedDir] — method-call list argument
         }
         // else: dependsOn ["clean", "build"], files ["x"], to ["*.jar"] → listOf
       }
@@ -715,6 +723,7 @@ export class GradleToKtsConverter {
     return this.getExpressionBlock(text, regex, (block) => {
       // When the match includes a leading \n (from (^|\n)), the block starts with a
       // blank line and "ext {" lands in the body — strip that leading empty line.
+      const hadLeadingNewline = block.startsWith("\n");
       let lines = block.split("\n");
       if (lines.length > 0 && lines[0].trim() === "") {
         lines = lines.slice(1);
@@ -752,7 +761,7 @@ export class GradleToKtsConverter {
         return `${indent.replace(innerIndent, baseIndent)}extra["${name}"] = ${value}`;
       });
 
-      return convertedLines.join("\n");
+      return `${hadLeadingNewline ? "\n" : ""}${convertedLines.join("\n")}`;
     });
   }
 

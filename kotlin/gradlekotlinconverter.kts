@@ -191,7 +191,8 @@ fun looksLikeIndexExpression(trimmed: String): Boolean {
 // becomes
 // listOf(1, 2)
 // but keep array/map indexing: versionCodes[abiName], versionCodes [abiName], arr[42]
-// Spaced method args (dependsOn ["a", "b"]) still become listOf unless content is index-like.
+// Spaced method args at the start of an expression (dependsOn [clean]) become listOf.
+// Index-like content is preserved only when its receiver is already inside a larger expression.
 fun String.convertArrayExpression(): String {
     val arrayExp = """\[([^\]]*?)\]""".toRegex(DOT_MATCHES_ALL)
 
@@ -222,8 +223,17 @@ fun String.convertArrayExpression(): String {
                 return@replace match.value
             }
             if ((ch.isLetterOrDigit() || ch == '_') && looksLikeIndexExpression(trimmed)) {
-                // versionCodes [abiName]
-                return@replace match.value
+                var receiverStart = i
+                while (receiverStart >= 0 && this[receiverStart].let { it.isLetterOrDigit() || it == '_' || it == '.' }) {
+                    receiverStart--
+                }
+                val lineStart = this.lastIndexOf('\n', receiverStart.coerceAtLeast(0)) + 1
+                val expressionPrefix = this.substring(lineStart, receiverStart + 1).trim()
+                if (expressionPrefix.isNotEmpty()) {
+                    // def code = versionCodes [abiName]
+                    return@replace match.value
+                }
+                // dependsOn [clean] / from [generatedDir] -> listOf
             }
             // else: dependsOn ["clean", "build"], to ["*.jar"] → listOf
         }
