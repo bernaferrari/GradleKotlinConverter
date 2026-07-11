@@ -140,7 +140,11 @@ fun String.convertVariableDeclaration(): String {
 // [appIcon: "@drawable/ic_launcher", appRoundIcon: "@null"]
 // becomes
 // mapOf(appIcon to "@drawable/ic_launcher", appRoundIcon to "@null"])
+// Also: [:] → mapOf() (only outside strings/comments)
 fun String.convertMapExpression(): String {
+    // Empty Groovy map [:] → mapOf()
+    val withEmptyMaps = this.replaceOutsideCode("""\[\s*:\s*\]""".toRegex()) { "mapOf()" }
+
     val key = """\w+"""
     val value = """[^,:\s\]]+"""
     val keyValueGroup = """\s*$key:\s*$value\s*"""
@@ -157,7 +161,7 @@ fun String.convertMapExpression(): String {
         }
     }
 
-    return this.replace(mapRegExp) { lineMatch ->
+    return withEmptyMaps.replace(mapRegExp) { lineMatch ->
         val matchesInKotlinCode = mutableListOf<String>()
         extractAllMatches(matchesInKotlinCode, lineMatch.groupValues[1])
         "mapOf(${matchesInKotlinCode.joinToString(", ")})"
@@ -175,18 +179,59 @@ fun String.convertManifestPlaceHoldersWithMap(): String {
     }
 }
 
+/** True when bracket contents look like a single index (ident/number/path), not a list. */
+fun looksLikeIndexExpression(trimmed: String): Boolean {
+    if (trimmed.isEmpty()) return false
+    if (trimmed.toIntOrNull() != null) return true
+    // identifier or a.b.c — not quoted strings, not comma-separated lists
+    return Regex("""^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$""").matches(trimmed)
+}
+
 // [1, 2]
 // becomes
-// listOf(1,2)
-// but keep probablyMyArrayLookup[42]
+// listOf(1, 2)
+// but keep array/map indexing: versionCodes[abiName], versionCodes [abiName], arr[42]
+// Spaced method args (dependsOn ["a", "b"]) still become listOf unless content is index-like.
 fun String.convertArrayExpression(): String {
     val arrayExp = """\[([^\]]*?)\]""".toRegex(DOT_MATCHES_ALL)
 
-    return this.replace(arrayExp) {
-        if (it.groupValues[1].toIntOrNull() != null) {
-            it.value // Its probably an array indexing, so keep original
+    return this.replace(arrayExp) { match ->
+        val content = match.groupValues[1]
+        val trimmed = content.trim()
+        val offset = match.range.first
+        if (this.isInsideStringOrComment(offset)) {
+            return@replace match.value
+        }
+        // Leftover empty-map syntax (normally converted earlier); keep as-is.
+        if (trimmed == ":") {
+            return@replace match.value
+        }
+
+        // Receiver immediately before `[` → always indexing
+        if (offset > 0 && this[offset - 1].let { it.isLetterOrDigit() || it == '_' || it == ')' || it == ']' }) {
+            return@replace match.value
+        }
+
+        // Spaced receiver: walk left over whitespace
+        var i = offset - 1
+        val hadSpace = i >= 0 && this[i].isWhitespace()
+        while (i >= 0 && this[i].isWhitespace()) i--
+        if (i >= 0 && hadSpace) {
+            val ch = this[i]
+            if (ch == ')' || ch == ']') {
+                return@replace match.value
+            }
+            if ((ch.isLetterOrDigit() || ch == '_') && looksLikeIndexExpression(trimmed)) {
+                // versionCodes [abiName]
+                return@replace match.value
+            }
+            // else: dependsOn ["clean", "build"], to ["*.jar"] → listOf
+        }
+
+        if (trimmed.isEmpty() || trimmed.toIntOrNull() != null) {
+            match.value
         } else {
-            "listOf(${it.groupValues[1]})"
+            "listOf($trimmed)"
         }
     }
 }
@@ -377,9 +422,14 @@ fun String.convertSigningConfigBuildType(): String {
     val outerExp = "signingConfig.*signingConfigs.*".toRegex()
 
     return this.replace(outerExp) {
-        // extracts release from signingConfig signingConfigs.release
-        val release = it.value.replace("signingConfig.*signingConfigs.".toRegex(), "")
-        "signingConfig = signingConfigs.getByName(\"$release\")"
+        // Already converted (idempotent on Kotlin DSL input)
+        if ("""\b(getByName|named)\s*\(""".toRegex().containsMatchIn(it.value)) {
+            it.value
+        } else {
+            // extracts release from signingConfig signingConfigs.release
+            val release = it.value.replace("signingConfig.*signingConfigs.".toRegex(), "")
+            "signingConfig = signingConfigs.getByName(\"$release\")"
+        }
     }
 }
 
@@ -434,10 +484,20 @@ fun String.convertSigningConfigs(): String = this.convertNestedTypes("signingCon
 
 
 fun String.convertNestedTypes(buildTypes: String, named: String): String {
+    // Only rewrite bare identifiers before `{` (e.g. `release {`).
+    // Skip already-converted forms like named("release") { / getByName("main") { / register("debug") {
     return this.getExpressionBlock("$buildTypes\\s*\\{".toRegex()) { substring ->
-        substring.replace("\\S*\\s(?=\\{)".toRegex()) {
-            val valueWithoutWhitespace = it.value.replace(" ", "")
-            "$named(\"$valueWithoutWhitespace\") "
+        substring.replace(Regex("(^|\\n)(\\s*)(\\w+)(\\s+)(?=\\{)", RegexOption.MULTILINE)) { m ->
+            val lineStart = m.groupValues[1]
+            val indent = m.groupValues[2]
+            val word = m.groupValues[3]
+            val space = m.groupValues[4]
+            // Skip outer keyword if present; also skip already-converted DSL helpers
+            if (word == buildTypes || word in setOf("named", "create", "register", "getByName")) {
+                m.value
+            } else {
+                "$lineStart$indent$named(\"$word\")$space"
+            }
         }
     }
 }
@@ -760,7 +820,7 @@ fun String.addParenthesisToId(): String {
 fun String.addEquals(): String {
     val compileSdk = "compileSdk"
     val signing = "keyAlias|keyPassword|storeFile|storePassword"
-    val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary|kotlinCompilerExtensionVersion|isCoreLibraryDesugaringEnabled"
+    val other = "multiDexEnabled|correctErrorTypes|javaMaxHeapSize|jumboMode|dimension|useSupportLibrary|kotlinCompilerExtensionVersion|isCoreLibraryDesugaringEnabled|buildToolsVersion"
     val databinding = "dataBinding|viewBinding"
     val defaultConfig = "applicationId|minSdk|targetSdk|versionCode|versionName|testInstrumentationRunner|namespace"
 
@@ -827,14 +887,61 @@ fun String.convertJavaCompatibility(): String {
 }
 
 
-// converts the clean task, which is very common to find
+// converts the clean task, which is very common to find.
+// Uses balanced braces so trailing content (e.g. allprojects { ... }) is preserved.
+// Note: getExpressionBlock only rewrites from `{` onward; clean needs the whole task header replaced.
 fun String.convertCleanTask(): String {
-
-    val cleanExp = "task clean\\(type: Delete\\)\\s*\\{[\\s\\S]*}".toRegex()
+    val cleanHeader = "task clean\\(type: Delete\\)\\s*\\{".toRegex()
     val registerClean = "tasks.register<Delete>(\"clean\").configure {\n" +
             "    delete(rootProject.buildDir)\n }"
 
-    return this.replace(cleanExp, registerClean)
+    val matches = cleanHeader.findAll(this).toList()
+    if (matches.isEmpty()) return this
+
+    return matches.foldRight(this) { matchResult, acc ->
+        val openBraceIndex = matchResult.range.last
+        var count = 0
+        var inString = false
+        var stringChar = ' '
+        var escaped = false
+        var endIndex = acc.length
+        var i = openBraceIndex
+        while (i < acc.length) {
+            val ch = acc[i]
+            if (escaped) {
+                escaped = false
+                i++
+                continue
+            }
+            if (ch == '\\') {
+                escaped = true
+                i++
+                continue
+            }
+            if (inString) {
+                if (ch == stringChar) inString = false
+                i++
+                continue
+            }
+            if (ch == '"' || ch == '\'') {
+                inString = true
+                stringChar = ch
+                i++
+                continue
+            }
+            if (ch == '{') {
+                count += 1
+            } else if (ch == '}') {
+                count -= 1
+                if (count == 0) {
+                    endIndex = i + 1
+                    break
+                }
+            }
+            i++
+        }
+        acc.replaceRange(matchResult.range.first, endIndex, registerClean)
+    }
 }
 
 
@@ -1023,14 +1130,107 @@ fun String.convertPluginsIntoOneBlock(): String {
     }
 }
 
+/**
+ * True when a colon at/after [offset] is a Groovy ternary false-branch colon
+ * (`? ... : ...`). Scans a limited window before [offset], ignoring `?` / `:`
+ * inside string literals and comments (including multiline ternaries).
+ */
+fun String.hasUnpairedTernaryQuestion(offset: Int): Boolean {
+    val windowStart = (offset - 500).coerceAtLeast(0)
+    var i = windowStart
+    var inString = false
+    var stringChar = ' '
+    var stringLen = 1
+    var inBlockComment = false
+    var inLineComment = false
+    var unpairedQuestion = false
+
+    while (i < offset) {
+        if (inLineComment) {
+            if (this[i] == '\n') inLineComment = false
+            i++
+            continue
+        }
+        if (inBlockComment) {
+            if (this[i] == '*' && i + 1 < length && this[i + 1] == '/') {
+                inBlockComment = false
+                i += 2
+                continue
+            }
+            i++
+            continue
+        }
+        if (inString) {
+            if (i + stringLen - 1 < length && this.substring(i, i + stringLen) == stringChar.toString().repeat(stringLen)) {
+                inString = false
+                i += stringLen
+                continue
+            }
+            if (stringLen == 1 && this[i] == '\\') {
+                i += 2
+                continue
+            }
+            i++
+            continue
+        }
+
+        if (this[i] == '/' && i + 1 < length && this[i + 1] == '*') {
+            inBlockComment = true
+            i += 2
+            continue
+        }
+        if (this[i] == '/' && i + 1 < length && this[i + 1] == '/') {
+            inLineComment = true
+            i += 2
+            continue
+        }
+        if (i + 2 < length) {
+            val tri = this.substring(i, i + 3)
+            if (tri == "\"\"\"" || tri == "'''") {
+                stringChar = tri[0]
+                stringLen = 3
+                inString = true
+                i += 3
+                continue
+            }
+        }
+        val ch = this[i]
+        if (ch == '"' || ch == '\'') {
+            stringChar = ch
+            stringLen = 1
+            inString = true
+            i++
+            continue
+        }
+        if (ch == '?') {
+            // Groovy safe-navigation `?.` is not a ternary question mark.
+            // Elvis `?:` is handled naturally: `?` then `:` clears the flag.
+            if (i + 1 >= length || this[i + 1] != '.') {
+                unpairedQuestion = true
+            }
+        } else if (ch == ':') {
+            unpairedQuestion = false
+        }
+        i++
+    }
+    return unpairedQuestion
+}
+
 // testImplementation(group: "junit", name: "junit", version: "4.12")
 // becomes
 // testImplementation(group = "junit", name = "junit", version = "4.12")
+// Does NOT rewrite ternary false-branch colons: isCi ? ciName : "local"
 fun String.replaceColonWithEquals(): String {
     // Convert parameter colons to = but ONLY when followed by a quote (named params),
-    // never colons inside dependency coordinate strings like "group:artifact:ver"
-    return this.replace("\\b(\\w+)\\s*:\\s*(?=[\"'])".toRegex()) {
-        it.value.replace(":", " =")
+    // never colons inside dependency coordinate strings like "group:artifact:ver",
+    // and never ternary `? ... : ...` colons (quote-aware, multiline window).
+    return this.replace("\\b(\\w+)\\s*:\\s*(?=[\"'])".toRegex()) { match ->
+        val offset = match.range.first
+        if (this.hasUnpairedTernaryQuestion(offset)) {
+            match.value // ternary colon
+        } else {
+            match.value.replace(":", " =")
+        }
     }
 }
 

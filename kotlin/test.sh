@@ -133,6 +133,79 @@ compare_inline \
   $'archivesBaseName = "random-app-$versionName"\n'
 
 echo
+echo "--- Bug regressions (mirror web/app/bug-regressions.spec.ts core cases) ---"
+
+compare_inline \
+  "bug1: clean task does not swallow trailing allprojects" \
+  $'task clean(type: Delete) {\n    delete rootProject.buildDir\n}\nallprojects {\n    repositories {\n        mavenCentral()\n    }\n}\n' \
+  $'tasks.register<Delete>("clean").configure {\n    delete(rootProject.buildDir)\n }\nallprojects {\n    repositories {\n        mavenCentral()\n    }\n}\n'
+
+compare_inline \
+  "bug2: empty Groovy map [:] becomes mapOf()" \
+  $'manifestPlaceholders = [:]\n' \
+  $'manifestPlaceholders.putAll(mapOf())\n'
+
+compare_inline \
+  "bug2e: [:] inside strings/comments is left alone" \
+  $'println "[:] empty"\n// use [:]\nmanifestPlaceholders = [:]\n' \
+  $'println "[:] empty"\n// use [:]\nmanifestPlaceholders.putAll(mapOf())\n'
+
+compare_inline \
+  "bug3: array indexing with variable is preserved" \
+  $'def code = versionCodes[abiName]\n' \
+  $'val code = versionCodes[abiName]\n'
+
+compare_inline \
+  "bug3d: spaced array indexing is preserved" \
+  $'def code = versionCodes [abiName]\n' \
+  $'val code = versionCodes [abiName]\n'
+
+compare_inline \
+  "bug3f: spaced method-call list args become listOf" \
+  $'dependsOn ["clean", "build"]\n' \
+  $'dependsOn listOf("clean", "build")\n'
+
+compare_inline \
+  "bug4: ternary false-branch colon is preserved" \
+  $'def name = isCi ? ciName : "local"\n' \
+  $'val name = isCi ? ciName : "local"\n'
+
+compare_inline \
+  "bug4c: ? inside strings does not block named params" \
+  $'exclude(group: "foo?", module: "bar")\n' \
+  $'exclude(group = "foo?", module = "bar")\n'
+
+compare_inline \
+  "bug4f: safe-navigation ?. does not block named params" \
+  $'foo(obj?.bar, group: "junit")\n' \
+  $'foo(obj?.bar, group = "junit")\n'
+
+compare_inline \
+  "bug4d: multiline ternary false-branch colon is preserved" \
+  $'def name = isCi ?\n    ciName : "local"\n' \
+  $'val name = isCi ?\n    ciName : "local"\n'
+
+compare_inline \
+  "bug5: already-converted getByName is not double-wrapped" \
+  $'signingConfig = signingConfigs.getByName("release")\n' \
+  $'signingConfig = signingConfigs.getByName("release")\n'
+
+compare_inline \
+  "bug5b: groovy signingConfig still converts" \
+  $'signingConfig signingConfigs.release\n' \
+  $'signingConfig = signingConfigs.getByName("release")\n'
+
+compare_inline \
+  "bug7: buildToolsVersion gets equals" \
+  $'buildToolsVersion "34.0.0"\n' \
+  $'buildToolsVersion = "34.0.0"\n'
+
+compare_inline \
+  "bug8: property after // comment line is still converted" \
+  $'// the namespace\nnamespace "com.example"\n' \
+  $'// the namespace\nnamespace = "com.example"\n'
+
+echo
 echo "=== Summary: ${passes} passed, ${failures} failed ==="
 
 if ((failures > 0)); then
