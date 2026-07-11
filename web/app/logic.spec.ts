@@ -266,6 +266,7 @@ dependencies {
       expect(result).toContain('applicationId = "com.example.app"');
       expect(result).toContain("versionCode = 42");
       expect(result).toContain('versionName = "1.5.2"');
+      expect(result).toContain('buildToolsVersion = "34.0.0"');
     });
 
     it("should handle exclusions with colons correctly", () => {

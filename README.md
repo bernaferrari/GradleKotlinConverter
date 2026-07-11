@@ -46,7 +46,7 @@ kotlinc -script kotlin/gradlekotlinconverter.kts build.gradle
 ./kotlin/gradlekotlinconverter.kts build.gradle
 ```
 
-The Kotlin script has full feature and test parity with the TypeScript version.
+The Kotlin script covers the core conversions; `web/` is the complete implementation with the full test suite and additional features.
 
 ### Developing the project
 

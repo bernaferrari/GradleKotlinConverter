@@ -165,6 +165,11 @@ export class GradleToKtsConverter {
       i++;
     }
 
+    // If querying exactly at a \n that terminates a line comment, the following
+    // content (match starting here via (^|\n) anchors) is outside the comment.
+    if (pos < text.length && text[pos] === "\n" && inLineComment) {
+      inLineComment = false;
+    }
     return inString || inBlockComment || inLineComment;
   }
 
@@ -220,8 +225,10 @@ export class GradleToKtsConverter {
   }
 
   private convertMapExpression(text: string): string {
+    // Empty Groovy map [:] → mapOf() (only outside strings/comments)
+    let result = this.replaceOutsideCode(text, /\[\s*:\s*\]/g, () => "mapOf()");
     const mapRegExp = /\[(\s*\w+:\s*[^,:\s\]]+\s*(?:,\s*\w+:\s*[^,:\s\]]+\s*)*)\]/g;
-    return this.replaceWithCallback(text, mapRegExp, (match) => {
+    return this.replaceWithCallback(result, mapRegExp, (match) => {
       const entries = match[1].split(",").map((entry) => {
         const [key, value] = entry.split(":").map((s) => s.trim());
         return `"${key}" to ${value}`;
@@ -240,10 +247,60 @@ export class GradleToKtsConverter {
     });
   }
 
+  /**
+   * True when bracket contents look like a single index expression (identifier,
+   * number, or simple dotted path) rather than a list literal.
+   */
+  private looksLikeIndexExpression(trimmed: string): boolean {
+    if (!trimmed) return false;
+    if (/^\d+$/.test(trimmed)) return true;
+    // identifier or a.b.c — not quoted strings, not comma-separated lists
+    if (/^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$/.test(trimmed)) return true;
+    return false;
+  }
+
   private convertArrayExpression(text: string): string {
-    return this.replaceWithCallback(text, /\[([^\]]*?)\]/g, (match) => {
-      const content = match[1].trim();
-      return content && !/^\d+$/.test(content) ? `listOf(${content})` : match[0];
+    // Convert list literals [a, b] → listOf(a, b), but preserve array/map indexing
+    // like versionCodes[abiName], versionCodes [abiName], arr[0], get()[i], matrix[i][j].
+    // Spaced forms after identifiers (dependsOn ["a", "b"]) are list args unless the
+    // bracket content looks like a single index expression.
+    return text.replace(/\[([^\]]*?)\]/g, (full, content, offset: number) => {
+      if (this.isInsideStringOrComment(text, offset)) {
+        return full;
+      }
+      const trimmed = content.trim();
+      // Leftover empty-map syntax (normally converted earlier); keep as-is.
+      if (trimmed === ":") {
+        return full;
+      }
+
+      // Receiver immediately before `[` → always indexing
+      if (offset > 0 && /[\w)\]]/.test(text[offset - 1])) {
+        return full;
+      }
+
+      // Spaced receiver: walk left over whitespace
+      let i = offset - 1;
+      const hadSpace = i >= 0 && /\s/.test(text[i]);
+      while (i >= 0 && /\s/.test(text[i])) i--;
+      if (i >= 0 && hadSpace) {
+        if (text[i] === ")" || text[i] === "]") {
+          // getVersions() [0] / matrix[i] [j]
+          return full;
+        }
+        if (/[\w]/.test(text[i]) && this.looksLikeIndexExpression(trimmed)) {
+          // versionCodes [abiName] — single index-like content after identifier
+          return full;
+        }
+        // else: dependsOn ["clean", "build"], files ["x"], to ["*.jar"] → listOf
+      }
+
+      // Numeric-only inside [] without a receiver is still a one-element list, but
+      // keep the historical guard for bare [0]-style lookups that lack a clear receiver.
+      if (!trimmed || /^\d+$/.test(trimmed)) {
+        return full;
+      }
+      return `listOf(${trimmed})`;
     });
   }
 
@@ -380,7 +437,8 @@ export class GradleToKtsConverter {
       return block.replace(
         /(^|\n)(\s*)(\w+)\s+("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,
         (m, lineStart, indent, configName, quoted) => {
-          const known = /^(implementation|api|testImplementation|androidTestImplementation|debugImplementation|releaseImplementation|compileOnly|testCompileOnly|runtimeOnly|testRuntimeOnly|androidTestRuntimeOnly|debugRuntimeOnly|releaseRuntimeOnly|developmentOnly|classpath|kapt|kaptTest|kaptAndroidTest|annotationProcessor|ksp|coreLibraryDesugaring|detektPlugins|lintPublish|lintCheck|modImplementation|modApi)$/;
+          const known =
+            /^(implementation|api|testImplementation|androidTestImplementation|debugImplementation|releaseImplementation|compileOnly|testCompileOnly|runtimeOnly|testRuntimeOnly|androidTestRuntimeOnly|debugRuntimeOnly|releaseRuntimeOnly|developmentOnly|classpath|kapt|kaptTest|kaptAndroidTest|annotationProcessor|ksp|coreLibraryDesugaring|detektPlugins|lintPublish|lintCheck|modImplementation|modApi)$/;
           if (known.test(configName) || configName === "dependencies") return m;
           return `${lineStart}${indent}"${configName}"(${quoted})`;
         },
@@ -486,6 +544,7 @@ export class GradleToKtsConverter {
       "isCoreLibraryDesugaringEnabled",
       "dataBinding",
       "viewBinding",
+      "buildToolsVersion",
     ];
     // Use word boundary to prevent matching substrings like "compileSdk" in "compileSdkVersion"
     const versionExp = new RegExp(
@@ -518,11 +577,12 @@ export class GradleToKtsConverter {
   }
 
   private convertCleanTask(text: string): string {
-    const cleanExp = /task clean\(type: Delete\)\s*\{[\s\S]*}/g;
+    // Match only the clean task block (balanced braces), not the rest of the file.
+    const cleanHeader = /task clean\(type: Delete\)\s*\{/g;
     const registerClean = `tasks.register<Delete>("clean").configure {
     delete(rootProject.buildDir)
  }`;
-    return text.replace(cleanExp, registerClean);
+    return this.getExpressionBlock(text, cleanHeader, () => registerClean);
   }
 
   private convertProguardFiles(text: string): string {
@@ -633,6 +693,10 @@ export class GradleToKtsConverter {
   private convertSigningConfigBuildType(text: string): string {
     const outerExp = /signingConfig.*signingConfigs.*/g;
     return this.replaceWithCallback(text, outerExp, (match) => {
+      // Already converted (idempotent on Kotlin DSL input)
+      if (/\b(getByName|named)\s*\(/.test(match[0])) {
+        return match[0];
+      }
       const release = match[0].replace(/signingConfig.*signingConfigs\./, "");
       return `signingConfig = signingConfigs.getByName("${release}")`;
     });
@@ -649,7 +713,12 @@ export class GradleToKtsConverter {
   private convertExtBlocksToExtra(text: string): string {
     const regex = /(^|\n)([\t ]*)ext\s*\{/g;
     return this.getExpressionBlock(text, regex, (block) => {
-      const lines = block.split("\n");
+      // When the match includes a leading \n (from (^|\n)), the block starts with a
+      // blank line and "ext {" lands in the body — strip that leading empty line.
+      let lines = block.split("\n");
+      if (lines.length > 0 && lines[0].trim() === "") {
+        lines = lines.slice(1);
+      }
       if (lines.length < 2) return block;
 
       const firstLine = lines[0];
@@ -696,10 +765,102 @@ export class GradleToKtsConverter {
     });
   }
 
+  /**
+   * True when the colon at/after `offset` is a Groovy ternary false-branch colon
+   * (`? ... : ...`). Scans a limited window before `offset`, ignoring `?` / `:`
+   * inside string literals and comments (including multiline ternaries).
+   */
+  private hasUnpairedTernaryQuestion(text: string, offset: number): boolean {
+    const windowStart = Math.max(0, offset - 500);
+    let i = windowStart;
+    let inString = false;
+    let stringDelim = "";
+    let stringLen = 1;
+    let inBlockComment = false;
+    let inLineComment = false;
+    let unpairedQuestion = false;
+
+    while (i < offset) {
+      if (inLineComment) {
+        if (text[i] === "\n") inLineComment = false;
+        i++;
+        continue;
+      }
+      if (inBlockComment) {
+        if (text[i] === "*" && text[i + 1] === "/") {
+          inBlockComment = false;
+          i += 2;
+          continue;
+        }
+        i++;
+        continue;
+      }
+      if (inString) {
+        if (text.startsWith(stringDelim, i)) {
+          inString = false;
+          i += stringLen;
+          continue;
+        }
+        if (stringLen === 1 && text[i] === "\\") {
+          i += 2;
+          continue;
+        }
+        i++;
+        continue;
+      }
+
+      if (text[i] === "/" && text[i + 1] === "*") {
+        inBlockComment = true;
+        i += 2;
+        continue;
+      }
+      if (text[i] === "/" && text[i + 1] === "/") {
+        inLineComment = true;
+        i += 2;
+        continue;
+      }
+      if (i + 2 < text.length) {
+        const tri = text.slice(i, i + 3);
+        if (tri === '"""' || tri === "'''") {
+          stringDelim = tri;
+          stringLen = 3;
+          inString = true;
+          i += 3;
+          continue;
+        }
+      }
+      const ch = text[i];
+      if (ch === '"' || ch === "'") {
+        stringDelim = ch;
+        stringLen = 1;
+        inString = true;
+        i++;
+        continue;
+      }
+      if (ch === "?") {
+        // Groovy safe-navigation `?.` is not a ternary question mark.
+        // Elvis `?:` is handled naturally: `?` then `:` clears the flag.
+        if (text[i + 1] !== ".") {
+          unpairedQuestion = true;
+        }
+      } else if (ch === ":") {
+        unpairedQuestion = false;
+      }
+      i++;
+    }
+    return unpairedQuestion;
+  }
+
   private replaceColonWithEquals(text: string): string {
-    // This function converts parameter colons to equals signs (e.g., name: "value" -> name = "value"),
-    // but must avoid converting colons inside quoted strings (like dependency coordinates "org:artifact:version")
-    return text.replace(/\b(\w+)\s*:\s*(?=["'])/g, "$1 = ");
+    // Convert parameter colons to equals (name: "value" -> name = "value"),
+    // but never colons inside quoted strings, and never ternary false-branch colons
+    // (isCi ? ciName : "local"), including multiline and `?` inside strings.
+    return text.replace(/\b(\w+)\s*:\s*(?=["'])/g, (match, key, offset: number) => {
+      if (this.hasUnpairedTernaryQuestion(text, offset)) {
+        return match; // ternary colon
+      }
+      return `${key} = `;
+    });
   }
 
   private convertBuildTypes(text: string): string {
@@ -711,11 +872,7 @@ export class GradleToKtsConverter {
   }
 
   private convertFlavorDimensionProperty(text: string): string {
-    return this.replaceOutsideCode(
-      text,
-      /\bdimension\s+("[^"]+")/g,
-      (m) => `dimension = ${m[1]}`,
-    );
+    return this.replaceOutsideCode(text, /\bdimension\s+("[^"]+")/g, (m) => `dimension = ${m[1]}`);
   }
 
   private convertSourceSets(text: string): string {
@@ -776,15 +933,23 @@ ${indent}}`;
     // We are conservative: skip names that are commonly used inside plugin DSLs
     // that happen to use a nested "configurations { ... }" structure (e.g. jOOQ plugin).
     const nonConfigNames = new Set([
-      "main", "test", "integrationTest",
-      "generationTool", "jdbc", "generator", "database", "target", "logging",
+      "main",
+      "test",
+      "integrationTest",
+      "generationTool",
+      "jdbc",
+      "generator",
+      "database",
+      "target",
+      "logging",
     ]);
     const regex = /configurations\s*\{/g;
     return this.getExpressionBlock(text, regex, (substring) => {
       return substring.replace(
         /(^|\n)(\s*)(\w+)(\s*(?:\{|$))/gm,
         (m, lineStart, indent, name, rest) => {
-          if (["configurations", "create", "register", "named", "getByName"].includes(name)) return m;
+          if (["configurations", "create", "register", "named", "getByName"].includes(name))
+            return m;
           if (nonConfigNames.has(name)) return m;
           return `${lineStart}${indent}create("${name}")${rest}`;
         },
@@ -794,14 +959,14 @@ ${indent}}`;
 
   private convertNestedTypes(text: string, buildTypes: string, named: string): string {
     const regex = new RegExp(`${buildTypes}\\s*\\{`, "g");
+    const skipWords = new Set([buildTypes, "named", "create", "register", "getByName"]);
     return this.getExpressionBlock(text, regex, (substring) => {
       // Match optional leading whitespace, then word, then whitespace before {
-      // but skip if it's the buildTypes keyword
+      // Skip outer keyword and already-converted DSL helpers.
       return substring.replace(
         /(^|\n)(\s*)(\w+)(\s+)(?=\{)/gm,
         (match, lineStart, indent, word, space) => {
-          // Skip the outer keyword (buildTypes, productFlavors, etc.)
-          if (word === buildTypes) {
+          if (skipWords.has(word)) {
             return match;
           }
           return `${lineStart}${indent}${named}("${word}")${space}`;
@@ -966,25 +1131,16 @@ ${indent}}`;
 
   private convertAllLambdaParamToThisAlias(text: string): string {
     // Rewrite foo.all { name -> ... } to foo.all { val name = this ... }
-    // Applied to common Gradle DomainObjectSet collections: applicationVariants, outputs
-    const patterns = [
-      /applicationVariants\.all\s*\{\s*(\w+)\s*->/g,
-      /outputs\.all\s*\{\s*(\w+)\s*->/g,
-    ];
+    // Applied independently to common DomainObjectSet collections.
     let out = text;
-    for (const re of patterns) {
-      out = out.replace(re, (_m, name) => {
-        return `applicationVariants.all { val ${name} = this`; // placeholder; fix for outputs below
-      });
-      // fix outputs case where prefix got wrong
-      out = out.replace(
-        /applicationVariants\.all \{ val (\w+) = this(?=[^\n]*outputs\.all)/g,
-        (m) => m,
-      );
-      out = out.replace(/outputs\.all \{\s*(\w+)\s*->/g, (_m, name) => {
-        return `outputs.all { val ${name} = this`;
-      });
-    }
+    out = out.replace(
+      /applicationVariants\.all\s*\{\s*(\w+)\s*->/g,
+      (_m, name) => `applicationVariants.all { val ${name} = this`,
+    );
+    out = out.replace(
+      /outputs\.all\s*\{\s*(\w+)\s*->/g,
+      (_m, name) => `outputs.all { val ${name} = this`,
+    );
     return out;
   }
 
