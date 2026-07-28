@@ -30,7 +30,7 @@
     "input-otp": "^1.4.2",
     "lucide-react": "1.21.0",
     "motion": "^12.40.0",
-    "next": "16.2.9",
+    "next": "16.2.11",
     "next-themes": "^0.4.6",
     "posthog-js": "^1.392.0",
     "react": "^19.2.7",
