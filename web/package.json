@@ -61,8 +61,7 @@
     "vitest": "^4.1.10"
   },
   "engines": {
-    "node": ">=24",
-    "pnpm": ">=11"
+    "node": "24.x"
   },
   "devEngines": {
     "packageManager": {
