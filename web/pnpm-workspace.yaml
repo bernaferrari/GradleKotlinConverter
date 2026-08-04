@@ -1,9 +1,6 @@
 packages:
   - "."
 
-# Allow freshly published deps so CI `pnpm install --frozen-lockfile` works after upgrades.
-minimumReleaseAge: 0
-
 allowBuilds:
   core-js: true
   esbuild: true
