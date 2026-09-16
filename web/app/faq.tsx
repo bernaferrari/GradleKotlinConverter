@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
@@ -36,6 +37,12 @@ export function FAQ() {
         <h2 id="faq-title" className="text-base font-semibold">
           Common questions
         </h2>
+        <Link
+          href="/faq"
+          className="mt-2 block text-sm text-foreground underline underline-offset-4"
+        >
+          Read the migration FAQ
+        </Link>
         <a
           href={`${siteConfig.links.github}/issues`}
           target="_blank"

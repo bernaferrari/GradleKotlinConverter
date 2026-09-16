@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { siteConfig } from "@/config/site";
 
@@ -16,6 +17,12 @@ export function About() {
         </a>
       </p>
       <nav aria-label="Footer" className="flex flex-wrap items-center gap-6">
+        <Link
+          href="/faq"
+          className="inline-flex min-h-11 items-center hover:text-foreground hover:underline"
+        >
+          Help & FAQ
+        </Link>
         <a
           href={siteConfig.links.github}
           target="_blank"

@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 
 import { About } from "./about";
 import CodeEditors from "./code-editors";
 import { FAQ } from "./faq";
 import { HowItWorks } from "./how-it-works";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default function Home() {
   return (
