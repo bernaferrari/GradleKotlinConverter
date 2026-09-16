@@ -100,11 +100,7 @@ android {
         targetSdkVersion 36
     }
 }`,
-    expectedSnippets: [
-      "compileSdk = 36",
-      "minSdk = 24",
-      "targetSdk = 36",
-    ],
+    expectedSnippets: ["compileSdk = 36", "minSdk = 24", "targetSdk = 36"],
     forbiddenSnippets: ["compileSdkVersion", "minSdkVersion", "targetSdkVersion"],
   },
 ];

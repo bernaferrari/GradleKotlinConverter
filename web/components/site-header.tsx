@@ -1,43 +1,40 @@
 import Link from "next/link";
 
 import { siteConfig } from "@/config/site";
-import { buttonVariants } from "@/components/ui/button";
 import { Icons } from "@/components/icons";
-import { MainNav } from "@/components/main-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background flex justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-5xl flex h-16 items-center gap-4 sm:justify-between sm:space-x-0">
-        <MainNav items={siteConfig.mainNav} />
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          <nav className="flex items-center space-x-1">
-            <Link href={siteConfig.links.github} target="_blank" rel="noreferrer">
-              <div
-                className={buttonVariants({
-                  size: "icon",
-                  variant: "ghost",
-                })}
-              >
-                <Icons.gitHub className="h-5 w-5" />
-                <span className="sr-only">GitHub</span>
-              </div>
-            </Link>
-            <Link href={siteConfig.links.twitter} target="_blank" rel="noreferrer">
-              <div
-                className={buttonVariants({
-                  size: "icon",
-                  variant: "ghost",
-                })}
-              >
-                <Icons.twitter className="h-4 w-4 fill-current" />
-                <span className="sr-only">Twitter</span>
-              </div>
-            </Link>
-            <ThemeToggle />
-          </nav>
-        </div>
+    <header className="sticky top-0 z-40 border-b bg-background">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded-md focus:bg-card focus:p-4"
+      >
+        Skip to converter
+      </a>
+      <div className="mx-auto flex h-14 max-w-[1248px] items-center justify-between gap-4 px-5 sm:px-8">
+        <Link
+          href="/"
+          className="flex min-h-11 items-center gap-3 text-sm font-semibold tracking-tight"
+        >
+          <Icons.logo className="size-8" aria-hidden="true" />
+          <span>
+            Gradle <span className="font-normal text-muted-foreground">to</span> Kotlin
+          </span>
+        </Link>
+        <nav aria-label="Main navigation" className="flex items-center gap-1">
+          <a
+            href={siteConfig.links.github}
+            target="_blank"
+            rel="noreferrer"
+            className="flex size-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="View source on GitHub (opens in a new tab)"
+          >
+            <Icons.gitHub className="size-4" />
+          </a>
+          <ThemeToggle />
+        </nav>
       </div>
     </header>
   );
