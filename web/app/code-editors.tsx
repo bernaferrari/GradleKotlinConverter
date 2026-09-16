@@ -255,7 +255,14 @@ export default function CodeEditors() {
                       disabled={!hasOutput}
                       onClick={copyOutput}
                     >
-                      {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                      <span
+                        className="group/copy relative size-4"
+                        data-copied={copied}
+                        aria-hidden="true"
+                      >
+                        <Copy className="absolute inset-0 size-4 scale-100 opacity-100 transition duration-200 ease-out group-data-[copied=true]/copy:scale-0 group-data-[copied=true]/copy:opacity-0 motion-reduce:transition-none" />
+                        <Check className="absolute inset-0 size-4 scale-0 text-primary opacity-0 transition duration-200 ease-out group-data-[copied=true]/copy:scale-100 group-data-[copied=true]/copy:opacity-100 motion-reduce:transition-none" />
+                      </span>
                     </Button>
                   }
                 />
