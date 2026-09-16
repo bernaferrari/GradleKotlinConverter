@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Editor, { type BeforeMount } from "@monaco-editor/react";
-import { AlertCircle, Check, ClipboardPaste, Copy, Download } from "lucide-react";
+import { AlertCircle, Check, ClipboardPaste, Copy, Download, RotateCcw } from "lucide-react";
 import type { editor } from "monaco-editor";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
+import { BorderBeam } from "@/components/magicui/border-beam";
+import { Icons } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { editorExamples } from "./editor-examples";
@@ -16,7 +18,7 @@ const converter = new GradleToKtsConverter();
 const initialInput = editorExamples[0].input;
 const editorOptions: editor.IStandaloneEditorConstructionOptions = {
   minimap: { enabled: false },
-  fontSize: 13,
+  fontSize: 14,
   lineHeight: 23,
   fontFamily: 'var(--font-jetbrains-mono), "SFMono-Regular", Consolas, monospace',
   lineNumbersMinChars: 3,
@@ -69,6 +71,8 @@ export default function CodeEditors() {
     error: "",
   }));
   const [copied, setCopied] = useState(false);
+  const [outputLoaded, setOutputLoaded] = useState(false);
+  const [recentConversion, setRecentConversion] = useState(true);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { resolvedTheme } = useTheme();
   const pending = input !== result.source;
@@ -103,6 +107,12 @@ export default function CodeEditors() {
       if (copyTimer.current) clearTimeout(copyTimer.current);
     };
   }, [result.output]);
+
+  useEffect(() => {
+    setRecentConversion(true);
+    const timer = setTimeout(() => setRecentConversion(false), 1200);
+    return () => clearTimeout(timer);
+  }, [result.source, outputLoaded]);
 
   async function copyOutput() {
     try {
@@ -143,9 +153,14 @@ export default function CodeEditors() {
     <section aria-label="Gradle to Kotlin converter">
       <div className="grid min-w-0 overflow-hidden rounded-lg border bg-card md:grid-cols-2">
         <div className="min-w-0 border-b md:border-r md:border-b-0">
-          <div className="relative flex h-14 items-center border-b bg-muted/20 pr-16 pl-5">
-            <h2 className="font-mono text-xs font-medium">build.gradle</h2>
-            <div className="absolute top-1/2 right-3 -translate-y-1/2">
+          <div className="relative flex h-12 items-center border-b bg-muted/20 pr-28 pl-5">
+            <div className="flex items-center gap-3">
+              <Icons.groovy className="size-5 shrink-0" aria-hidden="true" />
+              <h2 className="font-mono text-xs font-medium" aria-label="Groovy: build.gradle">
+                build.gradle
+              </h2>
+            </div>
+            <div className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger
                   render={
@@ -160,6 +175,25 @@ export default function CodeEditors() {
                   }
                 />
                 <TooltipContent>Paste Groovy code</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="editor-icon"
+                      aria-label="Restore example"
+                      disabled={input === initialInput}
+                      onClick={() => {
+                        setInput(initialInput);
+                        toast.info("Example restored");
+                      }}
+                    >
+                      <RotateCcw className="size-4" />
+                    </Button>
+                  }
+                />
+                <TooltipContent>Restore example</TooltipContent>
               </Tooltip>
             </div>
           </div>
@@ -184,8 +218,16 @@ export default function CodeEditors() {
           </div>
         </div>
         <div className="min-w-0">
-          <div className="relative flex h-14 items-center border-b bg-muted/20 pr-28 pl-5">
-            <h2 className="font-mono text-xs font-medium">build.gradle.kts</h2>
+          <div className="relative flex h-12 items-center border-b bg-muted/20 pr-28 pl-5">
+            <div className="flex items-center gap-3">
+              <Icons.kotlin className="size-5 shrink-0" aria-hidden="true" />
+              <h2
+                className="font-mono text-xs font-medium"
+                aria-label="Kotlin DSL: build.gradle.kts"
+              >
+                build.gradle.kts
+              </h2>
+            </div>
             <div className="absolute top-1/2 right-3 -translate-y-1/2 flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger
@@ -225,6 +267,7 @@ export default function CodeEditors() {
             <Editor
               height="100%"
               language="kotlin"
+              onMount={() => setOutputLoaded(true)}
               value={output}
               onChange={(value) => {
                 if (!pending) setResult((previous) => ({ ...previous, output: value ?? "" }));
@@ -238,6 +281,16 @@ export default function CodeEditors() {
               }}
               loading={<EditorFallback label="Kotlin DSL output" value={output} />}
             />
+            {input.trim() && !result.error && (pending || !outputLoaded || recentConversion) && (
+              <div className="pointer-events-none absolute inset-0 z-10" aria-hidden="true">
+                <BorderBeam
+                  size={200}
+                  duration={1.2}
+                  colorFrom="var(--color-brand-kotlin-middle)"
+                  colorTo="var(--color-brand-kotlin-end)"
+                />
+              </div>
+            )}
             {!output && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-muted-foreground">
                 <p>

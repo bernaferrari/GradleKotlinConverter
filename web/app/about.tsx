@@ -16,7 +16,14 @@ export function About() {
         </a>
       </p>
       <nav aria-label="Footer" className="flex flex-wrap items-center gap-6">
-        <span>Free & open source</span>
+        <a
+          href={siteConfig.links.github}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-11 items-center hover:text-foreground hover:underline"
+        >
+          Free & open source
+        </a>
         <a
           href="mailto:bernaferrari2@gmail.com"
           className="inline-flex min-h-11 items-center hover:text-foreground"

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { motion, MotionStyle, Transition } from "motion/react";
+import { motion, useReducedMotion, MotionStyle, Transition } from "motion/react";
 
 interface BorderBeamProps {
   /**
@@ -58,6 +58,9 @@ export const BorderBeam = ({
   reverse = false,
   initialOffset = 0,
 }: BorderBeamProps) => {
+  const reducedMotion = useReducedMotion();
+  if (reducedMotion) return null;
+
   return (
     <div className="pointer-events-none absolute inset-0 rounded-lg border border-transparent [mask-clip:padding-box,border-box] [mask-composite:intersect] [mask-image:linear-gradient(transparent,transparent),linear-gradient(#000,#000)]">
       <motion.div
