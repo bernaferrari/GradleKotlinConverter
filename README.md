@@ -4,7 +4,7 @@
 
 A powerful tool to simplify the migration from Gradle's Groovy DSL to Kotlin DSL for Android and other Gradle projects.
 
-[![Image of website](assets/web-screenshot.png)](https://gradle-kotlin-converter.vercel.app/)
+[![Gradle to Kotlin converter with side-by-side Groovy and Kotlin DSL editors](assets/web-screenshot.png)](https://gradle-kotlin-converter.vercel.app/)
 
 Visit https://gradle-kotlin-converter.vercel.app/ to use the converter.
 
